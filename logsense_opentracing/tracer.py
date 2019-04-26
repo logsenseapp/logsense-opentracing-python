@@ -17,6 +17,7 @@ from fluent.sender import EventTime
 from .span import Span
 from .scope import Scope
 from .span_context import SpanContext
+from .scope_manager import ScopeManager
 
 
 class Tracer(opentracing.Tracer):
@@ -27,8 +28,7 @@ class Tracer(opentracing.Tracer):
     def __init__(self, scope_manager=None):
         super().__init__(scope_manager=scope_manager)
 
-        self._scope_manager = opentracing.ScopeManager() \
-                              if scope_manager is None else scope_manager
+        self._scope_manager = ScopeManager()  if scope_manager is None else scope_manager
         self.random = random.Random(time.time() * (os.getpid() or 1))
         logsense_token = os.getenv('LOGSENSE_TOKEN')  # pylint: disable=unused-variable
 
@@ -49,14 +49,18 @@ class Tracer(opentracing.Tracer):
                           ignore_active_span=False,
                           finish_on_close=True):
 
-        parent = child_of if child_of is not None else None
+        # Get parent's scope from arguments or by scope manager otherwise
+        parent = child_of if child_of is not None else self._scope_manager.active
 
+        # Assign trace_id from parent's scope or generate it if scope doesn't exist
         trace_id = parent.span.context.trace_id if parent is not None else self._random_id()
 
         span = Span(tracer=self, context=SpanContext(
             span_id=self._random_id(),
             trace_id=trace_id
             ))
+
+        self._scope_manager.activate(span, finish_on_close=True)
         scope = Scope(self._scope_manager, span)
         return scope
 

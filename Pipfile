@@ -8,7 +8,7 @@ pylint = "*"
 
 [packages]
 opentracing = "==2.0.0"
-logsense-logger = "*"
+logsense-logger = "==0.2.0"
 
 [requires]
 python_version = "3.7"

@@ -6,7 +6,7 @@ with open('README.md') as f:
 
 setup(
     name='logsense-opentracing-tracker',
-    version='0.0.22',
+    version='0.1.0',
     description='Logsen Opentracing Tracker',
     long_description=README,
     author='Dominik Rosiek',
@@ -15,6 +15,7 @@ setup(
     license=None,
     packages=find_packages(exclude=('examples',)),
     install_requires=[
-        'opentracing==2.0.0'
+        'opentracing==2.0.0',
+        'logsense-logger==0.2.0'
         ]
 )

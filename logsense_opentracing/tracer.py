@@ -92,7 +92,7 @@ class Tracer(opentracing.Tracer):
                 for data in span.get_data():
                     self._sender.emit_with_time(
                         label=data['label'],
-                        timestamp=EventTime(data['timestamp']),
+                        timestamp=data['timestamp'],
                         data=data['data']
                         )
             except Empty:

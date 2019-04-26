@@ -59,6 +59,7 @@ class Tracer(opentracing.Tracer):
             span_id=self._random_id(),
             trace_id=trace_id
             ))
+        span.set_tag('operation_name', operation_name)
 
         self._scope_manager.activate(span, finish_on_close=True)
         scope = Scope(self._scope_manager, span)

@@ -18,8 +18,11 @@ class Span(opentracing.Span):
         super().__init__(*args, **kwargs)
 
         self._tags = {}
-        self._logs = []
         self._start_timestamp = time.time()
+        self._logs = [{
+            'timestamp': self._start_timestamp,
+            'log': {}
+        }]  # Initialize logs with empty log (for span purposes)
         self._end_timestamp = None
         self._duration = None
 
@@ -59,7 +62,11 @@ class Span(opentracing.Span):
             data = log['log']
             data.update(self._tags)
             data.update(self.context.data)
-            data['duration_us'] = self.duration_us
+            data.update({
+                'duration_us': self.duration_us,
+                'time_position_us': round((log['timestamp'] - self._start_timestamp) * 1e6)
+            })
+
             return_value.append({
                 'label': 'opentracing',
                 'timestamp': log['timestamp'],

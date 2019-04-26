@@ -77,21 +77,21 @@ class Tracer(opentracing.Tracer):
         """
 
         while True:
-            with self._lock:
-                try:
+            try:
+                with self._lock:
                     span = self._queue.get(block=False)
                     if span is None:
                         self._sender.close()
                         return
 
-                    for data in span.get_data():
-                        self._sender.emit_with_time(
-                            label=data['label'],
-                            timestamp=EventTime(data['timestamp']),
-                            data=data['data']
-                            )
-                except Empty:
-                    time.sleep(0.5)
+                for data in span.get_data():
+                    self._sender.emit_with_time(
+                        label=data['label'],
+                        timestamp=EventTime(data['timestamp']),
+                        data=data['data']
+                        )
+            except Empty:
+                time.sleep(0.5)
 
     def finish(self):
         """

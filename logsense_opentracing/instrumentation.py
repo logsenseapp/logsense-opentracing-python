@@ -1,9 +1,10 @@
 """
-Instrumentation module provides useful functions for automatic instrumentation throught the opentracing
+Instrumentation module provides useful functions for automatic instrumentation
+throught the opentracing
 """
 import importlib
-import opentracing
 import inspect
+import opentracing
 from flask import request
 
 
@@ -22,7 +23,7 @@ def instrumentation(inside_function, before=None):
 
             # get list of and default arguments
             function_defaults = inside_function.__defaults__ or []
-            function_args = inspect.getargspec(inside_function)[0]
+            function_args = inspect.getfullargspec(inside_function)[0]
 
             # set default arguments
             for name, value in zip(reversed(function_args), reversed(function_defaults)):
@@ -41,7 +42,7 @@ def instrumentation(inside_function, before=None):
     return new_func
 
 
-def decorator_instrumentation(func, before=None):
+def _decorator_instrumentation(func, before=None):
     def new_decorator(*args, **kwargs):
         """
         This is function which originally is executed to generate decorator
@@ -69,17 +70,21 @@ def patch_single(module, before=None):
 
 def patch_decorator(module, before=None):
     """
-    Patch single decorator module with `func`. It automatically override target module to use instrumentation.
+    Patch single decorator module with `func`. It automatically override targetmodule
+    to use instrumentation.
     It's not suit for decorators now
     """
     paths = module.split('.')
     mod = importlib.import_module(paths[0])
     for i in range(1, len(paths)-1):
         mod = getattr(mod, paths[i])
-    setattr(mod, paths[-1], decorator_instrumentation(getattr(mod, paths[-1]), before=before))
+    setattr(mod, paths[-1], _decorator_instrumentation(getattr(mod, paths[-1]), before=before))
 
 
-def flask_route(scope, *args, **kwargs):
+def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
+    """
+    Extract information from flask request and put into opentracing scope
+    """
     scope.span.set_tag('http.url', request.url)
     scope.span.set_tag('http.method', request.method)
     scope.span.set_tag('peer.ipv4', request.remote_addr)

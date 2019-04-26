@@ -5,9 +5,8 @@ More details:
 https://opentracing-python.readthedocs.io/en/latest/api.html#opentracing.ScopeManager
 """
 
-import time
-import opentracing
 import inspect
+import opentracing
 
 from .scope import Scope
 
@@ -30,7 +29,6 @@ class ScopeManager(opentracing.ScopeManager):
             *span*. It is a programming error to neglect to call
             :meth:`Scope.close()` on the returned instance.
         """
-        stack = inspect.stack()
         parent_frame = inspect.stack()[2][0]
         scope = Scope(self, span)
         parent_frame.f_locals['logsense_opentracing_scope'] = scope
@@ -40,11 +38,10 @@ class ScopeManager(opentracing.ScopeManager):
     @property
     def active(self):
         stack = inspect.stack()
-        parent_frame = inspect.stack()[1][0]
         old_scope = None
         for frame in range(2, min(len(stack), self.STACK_DEPTH)):
-            locals = stack[frame][0].f_locals
-            old_scope = locals.get('logsense_opentracing_scope', None)
+            local_variables = stack[frame][0].f_locals
+            old_scope = local_variables.get('logsense_opentracing_scope', None)
             if old_scope is None:
                 continue
 

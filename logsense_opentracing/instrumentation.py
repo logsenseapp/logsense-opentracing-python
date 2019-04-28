@@ -13,7 +13,10 @@ def instrumentation(inside_function, before=None):
     Wraps `inside_function` as opentracing span
     """
     def new_func(*args, **kwargs):
-        operation_name = f'{inside_function.__module__}.{inside_function.__name__}'
+        operation_name = '{0}.{1}'.format(
+            inside_function.__module__,
+            inside_function.__name__
+        )
 
         with opentracing.tracer.start_active_span(operation_name) as scope:
 
@@ -27,15 +30,15 @@ def instrumentation(inside_function, before=None):
 
             # set default arguments
             for name, value in zip(reversed(function_args), reversed(function_defaults)):
-                scope.span.set_tag(f'kwarg.{name}', str(value))
+                scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by args
             for name, value in zip(function_args, args):
-                scope.span.set_tag(f'kwarg.{name}', str(value))
+                scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by kwargs
             for name, value in kwargs.items():
-                scope.span.set_tag(f'kwarg.{name}', str(value))
+                scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # execute function
             return inside_function(*args, **kwargs)

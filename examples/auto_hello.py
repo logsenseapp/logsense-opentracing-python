@@ -20,7 +20,7 @@ tracer = Tracer()  # pylint: disable=invalid-name
 opentracing.tracer = tracer
 ioloop = asyncio.get_event_loop()  # pylint: disable=invalid-name
 
-patch_decorator('flask.Flask.route', flask_route)
+patch_decorator('flask.Flask.route', before=flask_route)
 
 @app.route("/sayHello/<name>")
 def say_hello(name):  # pylint: disable=missing-docstring

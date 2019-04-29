@@ -12,7 +12,6 @@ from queue import Queue, Empty
 from threading import Lock, Thread
 import opentracing
 from logsense.sender import LogSenseSender
-from fluent.sender import EventTime
 
 from .span import Span
 from .scope import Scope
@@ -39,6 +38,26 @@ class Tracer(opentracing.Tracer):
 
         self._thread = Thread(target=self.process)
         self._thread.start()
+
+    @property
+    def active_scope(self):
+        """
+        Gets active scope for place where it was called
+        """
+        if self._scope_manager is None:
+            return None
+
+        return self._scope_manager.active
+
+    @property
+    def active_span(self):
+        """
+        Gets active span for place where it was called
+        """
+        if self.active_scope is None:
+            return None
+
+        return self.active_scope.span
 
     def start_active_span(self,  # pylint: disable=too-many-arguments
                           operation_name,

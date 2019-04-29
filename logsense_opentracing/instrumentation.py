@@ -5,13 +5,13 @@ throught the opentracing
 import importlib
 import inspect
 import opentracing
-from flask import request
 
 
-def instrumentation(inside_function, before=None):
+def instrumentation(inside_function, before=None, arguments=None):
     """
     Wraps `inside_function` as opentracing span
     """
+    arguments = arguments if arguments is not None else []
     def new_func(*args, **kwargs):
         operation_name = '{0}.{1}'.format(
             inside_function.__module__,
@@ -30,22 +30,25 @@ def instrumentation(inside_function, before=None):
 
             # set default arguments
             for name, value in zip(reversed(function_args), reversed(function_defaults)):
-                scope.span.set_tag('kwarg.{0}'.format(name), str(value))
+                if name in arguments:
+                    scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by args
             for name, value in zip(function_args, args):
-                scope.span.set_tag('kwarg.{0}'.format(name), str(value))
+                if name in arguments:
+                    scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by kwargs
             for name, value in kwargs.items():
-                scope.span.set_tag('kwarg.{0}'.format(name), str(value))
+                if name in arguments:
+                    scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # execute function
             return inside_function(*args, **kwargs)
     return new_func
 
 
-def _decorator_instrumentation(func, before=None):
+def _decorator_instrumentation(func, before=None, arguments=None):
     def new_decorator(*args, **kwargs):
         """
         This is function which originally is executed to generate decorator
@@ -53,13 +56,13 @@ def _decorator_instrumentation(func, before=None):
         decorator = func(*args, **kwargs)
 
         def new_inside_function(inside_function):
-            return decorator(instrumentation(inside_function, before=before))
+            return decorator(instrumentation(inside_function, before=before, arguments=arguments))
         return new_inside_function
 
     return new_decorator
 
 
-def patch_single(module, before=None):
+def patch_single(module, arguments=None, before=None):
     """
     Patch single module with `func`. It automatically override target module to use instrumentation.
     It's not suit for decorators now
@@ -68,10 +71,14 @@ def patch_single(module, before=None):
     mod = importlib.import_module(paths[0])
     for i in range(1, len(paths)-1):
         mod = getattr(mod, paths[i])
-    setattr(mod, paths[-1], instrumentation(getattr(mod, paths[-1]), before=before))
+    setattr(mod, paths[-1], instrumentation(
+        getattr(mod, paths[-1]),
+        before=before,
+        arguments=arguments
+        ))
 
 
-def patch_decorator(module, before=None):
+def patch_decorator(module, arguments=None, before=None):
     """
     Patch single decorator module with `func`. It automatically override targetmodule
     to use instrumentation.
@@ -81,13 +88,19 @@ def patch_decorator(module, before=None):
     mod = importlib.import_module(paths[0])
     for i in range(1, len(paths)-1):
         mod = getattr(mod, paths[i])
-    setattr(mod, paths[-1], _decorator_instrumentation(getattr(mod, paths[-1]), before=before))
+    setattr(mod, paths[-1], _decorator_instrumentation(
+        getattr(mod, paths[-1]),
+        before=before,
+        arguments=arguments
+        ))
 
 
 def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
     """
     Extract information from flask request and put into opentracing scope
     """
+    from flask import request  # Optional import
+
     scope.span.set_tag('http.url', request.url)
     scope.span.set_tag('http.method', request.method)
     scope.span.set_tag('peer.ipv4', request.remote_addr)

@@ -44,7 +44,12 @@ def instrumentation(inside_function, before=None, arguments=None):
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # execute function
-            return inside_function(*args, **kwargs)
+            scope.span.set_tag('error', False)
+            try:
+                return inside_function(*args, **kwargs)
+            except Exception as exception:
+                scope.span.set_tag('error', True)
+                raise exception
     return new_func
 
 
@@ -86,7 +91,12 @@ async def async_instrumentation(inside_function, before=None, arguments=None):
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # execute function
-            return await inside_function(*args, **kwargs)
+            scope.span.set_tag('error', False)
+            try:
+                return await inside_function(*args, **kwargs)
+            except Exception as exception:
+                scope.span.set_tag('error', True)
+                raise exception
     return new_func
 
 

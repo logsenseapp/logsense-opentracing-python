@@ -108,7 +108,11 @@ def _decorator_instrumentation(func, before=None, arguments=None):
         decorator = func(*args, **kwargs)
 
         def new_inside_function(inside_function):
-            return decorator(instrumentation(inside_function, before=before, arguments=arguments))
+            return decorator(instrumentation(
+                inside_function,
+                before=before,
+                arguments=arguments
+                ))
         return new_inside_function
 
     return new_decorator
@@ -123,7 +127,12 @@ async def _async_decorator_instrumentation(func, before=None, arguments=None):
         decorator = await func(*args, **kwargs)
 
         async def new_inside_function(inside_function):
-            return decorator(await async_instrumentation(inside_function, before=before, arguments=arguments))
+            return decorator(
+                await async_instrumentation(
+                    inside_function,
+                    before=before,
+                    arguments=arguments
+                    ))
         return new_inside_function
 
     return new_decorator

@@ -25,7 +25,13 @@ class SpanContext(opentracing.SpanContext):
 
     @property
     def baggage(self):
-        return self._baggage or opentracing.SpanContext.EMPTY_BAGGAGE
+        return self._baggage
+
+    def set_baggage(self, key, value):
+        """
+        Set baggage `key` as `value`
+        """
+        self._baggage[key] = value
 
     @property
     def data(self) -> dict:
@@ -34,5 +40,5 @@ class SpanContext(opentracing.SpanContext):
         """
         return {
             'trace_id': self.trace_id,
-            'span_id': self.span_id
+            'span_id': self.span_id,
         }

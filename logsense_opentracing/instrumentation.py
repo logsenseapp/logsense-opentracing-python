@@ -69,7 +69,7 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
 async def async_instrumentation(inside_function, before=None, arguments=None):
     """
     Wraps `inside_function` as opentracing span.
-    Exactly same as function above, but in async version
+    The same as instrumentation function, but in async version
     """
     arguments = arguments if arguments is not None else []
     async def new_func(*args, **kwargs):
@@ -135,7 +135,7 @@ async def _async_decorator_instrumentation(func, before=None, arguments=None):
     async def new_decorator(*args, **kwargs):
         """
         This is function which originally is executed to generate decorator
-        Exactly same as function above, but in async version
+        The same as _decorator_instrumentation function, but in async version
         """
         decorator = await func(*args, **kwargs)
 
@@ -171,7 +171,7 @@ async def patch_async_single(module, arguments=None, before=None):
     """
     Patch single module with `func`. It automatically override target module to use instrumentation.
     For decorator use patch_async_decorator
-    Exactly same as function above, but in async version
+    The same as patch_single function, but in async version
     """
     paths = module.split('.')
     mod = importlib.import_module(paths[0])
@@ -206,7 +206,7 @@ async def patch_async_decorator(module, arguments=None, before=None):
     Patch single decorator module with `func`. It automatically override target module
     to use instrumentation.
     It's usable only for decorators
-    Exactly same as function above, but in async version
+    The same as patch_decorator function, but in async version
     """
     paths = module.split('.')
     mod = importlib.import_module(paths[0])

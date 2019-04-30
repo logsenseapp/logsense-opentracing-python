@@ -1,12 +1,20 @@
 # pylint: disable=missing-docstring
 from setuptools import setup, find_packages
+from os import chdir
+from os.path import dirname, realpath, join
 
-with open('README.md') as f:
+
+package_dir = dirname(realpath(__file__))
+
+with open(join(package_dir, 'logsense_opentracing', 'version.py')) as f:
+    exec(f.read())
+
+with open(join(package_dir, 'README.md')) as f:
     README = f.read()
 
 setup(
     name='logsense-opentracing-tracker',
-    version='0.1.3',
+    version=__version__,
     description='Logsen Opentracing Tracker',
     long_description=README,
     author='Dominik Rosiek',

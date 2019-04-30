@@ -7,7 +7,7 @@ import inspect
 import opentracing
 
 
-def instrumentation(inside_function, before=None, arguments=None):
+def instrumentation(inside_function, before=None, after=None, arguments=None):
     """
     Wraps `inside_function` as opentracing span
     """
@@ -46,9 +46,22 @@ def instrumentation(inside_function, before=None, arguments=None):
             # execute function
             scope.span.set_tag('error', False)
             try:
-                return inside_function(*args, **kwargs)
+                result = inside_function(*args, **kwargs)
+
+                # Run `after` hook
+                if after is not None:
+                    after(scope, result, error=False, *args, **kwargs)
+
+                # return result
+                return result
             except Exception as exception:
                 scope.span.set_tag('error', True)
+
+                # Run `after` hook
+                if after is not None:
+                    after(scope, result, error=True, *args, **kwargs)
+
+                # pass inside_function execution exception
                 raise exception
     return new_func
 

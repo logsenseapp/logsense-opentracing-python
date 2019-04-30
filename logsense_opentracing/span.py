@@ -74,3 +74,11 @@ class Span(opentracing.Span):
             })
 
         return return_value
+
+
+    def set_baggage_item(self, key, value):
+        self.context.set_baggage(key, value)
+        return self
+
+    def get_baggage_item(self, key):
+        return self.context.baggage.get(key)

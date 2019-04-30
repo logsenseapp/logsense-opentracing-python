@@ -59,6 +59,10 @@ class TestClass:  # pylint: disable=missing-docstring,too-few-public-methods
         greeting += name + '!'
         if description:
             greeting += ' ' + description
+
+        counter = opentracing.tracer.active_span.get_baggage_item('counter')
+
+        greeting += '; There was {counter} visitors before you'.format(counter=counter)
         return greeting
 
 

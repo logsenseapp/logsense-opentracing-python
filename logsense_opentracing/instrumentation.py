@@ -225,6 +225,20 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
     """
     from flask import request  # Optional import
 
+    # Extract trace if available
+    carrier = {}
+
+    if request.headers.get('logsense-trace-id'):
+        carrier['trace_id'] = request.headers['logsense-trace-id']
+
+    if 'logsense-baggage' in request.headers:
+        carrier['baggage'] = dict(
+            data.split('=') for data in request.headers['logsense-baggage'].split(',')
+            )
+
+    opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
+
+    # Extract request information
     scope.span.set_tag('http.url', request.url)
     scope.span.set_tag('http.method', request.method)
     scope.span.set_tag('peer.ipv4', request.remote_addr)

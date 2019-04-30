@@ -23,6 +23,7 @@ class Tracer(opentracing.Tracer):
     """
     Implements opentracing.Tracer
     """
+    _supported_formats = [opentracing.propagation.Format.TEXT_MAP]
 
     def __init__(self, scope_manager=None):
         super().__init__(scope_manager=scope_manager)
@@ -38,26 +39,6 @@ class Tracer(opentracing.Tracer):
 
         self._thread = Thread(target=self.process)
         self._thread.start()
-
-    @property
-    def active_scope(self):
-        """
-        Gets active scope for place where it was called
-        """
-        if self._scope_manager is None:
-            return None
-
-        return self._scope_manager.active
-
-    @property
-    def active_span(self):
-        """
-        Gets active span for place where it was called
-        """
-        if self.active_scope is None:
-            return None
-
-        return self.active_scope.span
 
     def start_active_span(self,  # pylint: disable=too-many-arguments
                           operation_name,
@@ -76,7 +57,8 @@ class Tracer(opentracing.Tracer):
 
         span = Span(tracer=self, context=SpanContext(
             span_id=self._random_id(),
-            trace_id=trace_id
+            trace_id=trace_id,
+            baggage=parent.span.context.baggage if parent is not None else None
             ))
         span.set_tag('operation_name', operation_name)
 
@@ -122,3 +104,42 @@ class Tracer(opentracing.Tracer):
         Finish sender thread
         """
         self._queue.put(None)
+
+    def extract(self, format, carrier):  # pylint: disable=redefined-builtin
+        active_context = self.active_span.context
+
+        if format != opentracing.propagation.Format.TEXT_MAP:
+            raise opentracing.propagation.UnsupportedFormatException(format)
+
+        mandatory_keys = {'trace_id', 'baggage'}
+        keys_difference = mandatory_keys - set(carrier.keys())
+        if keys_difference:
+            error_msg = 'Carrier incomplete. Lack of few keys: {keys}'.format(keys=keys_difference)
+            raise ValueError(error_msg)
+
+        active_context.trace_id = str(carrier['trace_id'])
+
+        for key, value in carrier['baggage'].items():
+            active_context.set_baggage(key, value)
+
+        return active_context
+
+    def inject(self, span_context, format, carrier):  # pylint: disable=redefined-builtin
+        if format != opentracing.propagation.Format.TEXT_MAP:
+            raise opentracing.propagation.UnsupportedFormatException(format)
+
+        if isinstance(span_context, Span):
+            # be flexible and allow Span as argument, not only SpanContext
+            span_context = span_context.context
+
+        if not isinstance(span_context, SpanContext):
+            raise ValueError('Expecting SpanContext, not {}'.format(type(span_context)))
+
+        carrier['baggage'] = {}
+        carrier['trace_id'] = span_context.trace_id
+        carrier['span_id'] = span_context.span_id
+
+        for key, value in span_context.items():
+            carrier[key] = value
+
+        return span_context

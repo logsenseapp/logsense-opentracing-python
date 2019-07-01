@@ -1,5 +1,5 @@
-logsense\_opentracing.instrumentation module
-============================================
+Instrumentation
+===============
 
 .. automodule:: logsense_opentracing.instrumentation
     :members:

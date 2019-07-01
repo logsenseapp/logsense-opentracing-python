@@ -5,6 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 pylint = "*"
+sphinx-rtd-theme = "*"
 
 [packages]
 opentracing = "==2.0.0"

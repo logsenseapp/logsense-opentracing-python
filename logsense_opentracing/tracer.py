@@ -19,23 +19,41 @@ from .span_context import SpanContext
 from .scope_manager import ScopeManager
 
 
+class _DummySender:
+    def __init__(*args, **kwargs):  # pylint: disable=no-method-argument
+        pass
+
+    def close(*args, **kwargs):  # pylint: disable=no-method-argument
+        pass
+
+    def emit_with_time(self, label, timestamp, data):
+        print({
+            'label': label,
+            'timestamp': timestamp,
+            'data': data
+        })
+
+
 class Tracer(opentracing.Tracer):
     """
     Implements opentracing.Tracer
     """
     _supported_formats = [opentracing.propagation.Format.TEXT_MAP]
 
-    def __init__(self, scope_manager=None):
+    def __init__(self, scope_manager=None, logsense_token=None, dummy_sender=False):
         super().__init__(scope_manager=scope_manager)
 
         self._scope_manager = ScopeManager()  if scope_manager is None else scope_manager
         self.random = random.Random(time.time() * (os.getpid() or 1))
-        logsense_token = os.getenv('LOGSENSE_TOKEN')  # pylint: disable=unused-variable
+        logsense_token = os.getenv('LOGSENSE_TOKEN', logsense_token)  # pylint: disable=unused-variable
 
         self._queue = Queue()
         self._lock = Lock()
 
-        self._sender = LogSenseSender(logsense_token)
+        if dummy_sender is True:
+            self._sender = _DummySender()
+        else:
+            self._sender = LogSenseSender(logsense_token)
 
         self._thread = Thread(target=self.process)
         self._thread.start()

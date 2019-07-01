@@ -13,6 +13,8 @@ Submodules
    logsense_opentracing.span
    logsense_opentracing.span_context
    logsense_opentracing.tracer
+   logsense_opentracing.utils
+   logsense_opentracing.version
 
 Module contents
 ---------------

@@ -1,15 +1,35 @@
 """
 Instrumentation module provides useful functions for automatic instrumentation
-throught the opentracing
+through the opentracing
+
+Because of lack of ideas how to handle all decorators by one function they are separated on two types:
+
+* Flat - when decorator is not callable while using, it's consider as flat decorator
+* Non-Flat - if decorator takes argument before generating final decorator it's considered as non-flat decorator
+
+Please keep it in mind while using, because it can lead to the some issues
+
 """
+import logging
+import functools
 import importlib
 import inspect
 import opentracing
 
+log = logging.getLogger('logsense_opentracing.instrumentation')
 
 def instrumentation(inside_function, before=None, after=None, arguments=None):
     """
     Wraps `inside_function` as opentracing span
+
+    :arg inside_function: Function which is going to be patched
+    :arg before: Function which is going to be run before executing function. It's executed in tracer scope
+    :arg after: Function which is going to be run after executing function.
+        It's executed in tracer scope. It's called even if inside_function throw exception
+    :arg arguments: Arguments which are going to be reported to the opentracing server
+
+    This function is internal and shouldn't be call outside of the module
+
     """
     arguments = arguments if arguments is not None else []
     def new_func(*args, **kwargs):
@@ -22,7 +42,10 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
 
             # Run `before` hook
             if before is not None:
-                before(scope, *args, **kwargs)
+                try:
+                    before(scope, *args, **kwargs)
+                except Exception as exception:
+                    log.warning(exception)
 
             # get list of and default arguments
             function_defaults = inside_function.__defaults__ or []
@@ -113,47 +136,147 @@ async def async_instrumentation(inside_function, before=None, arguments=None):
     return new_func
 
 
-def _decorator_instrumentation(func, before=None, arguments=None):
-    def new_decorator(*args, **kwargs):
-        """
-        This is function which originally is executed to generate decorator
-        """
-        decorator = func(*args, **kwargs)
+def _decorator_instrumentation(func, before=None, arguments=None, flat=False, alternative=False):
+    """
+    :arg func: Decorator to be wrapped
+    :arg before: See instrumentation
+    :arg arguments: See instrumentation
+    :arg flat: True if decorator is flat, False otherwise.
+    :arg alternative: The decorated function is wrapped by instrumentation if alternative is True,
+        otherwise decorator is wrapped by instrumentation.
 
-        def new_inside_function(inside_function):
-            return decorator(instrumentation(
-                inside_function,
+        Let's see whats the result of flat decorator:
+
+        with alternative equals False (default behaviour)::
+
+            instrumentation(decorator(function))
+
+        with alternative equals True::
+
+            decorator(instrumentation(function))
+
+    """
+    def flat_decorator(decorated_function):
+        if alternative is True:
+            return func(instrumentation(
+                decorated_function,
                 before=before,
                 arguments=arguments
                 ))
-        return new_inside_function
+        else:
+            return instrumentation(
+                func(decorated_function),
+                before=before,
+                arguments=arguments
+                )
 
-    return new_decorator
+    def non_flat_decorator(*args, **kwargs):
+        decorator = func(*args, **kwargs)
 
-
-async def _async_decorator_instrumentation(func, before=None, arguments=None):
-    async def new_decorator(*args, **kwargs):
-        """
-        This is function which originally is executed to generate decorator
-        The same as _decorator_instrumentation function, but in async version
-        """
-        decorator = await func(*args, **kwargs)
-
-        async def new_inside_function(inside_function):
-            return decorator(
-                await async_instrumentation(
-                    inside_function,
+        def non_flat_decorator(decorated_function):
+            if alternative is True:
+                return decorator(instrumentation(
+                    decorated_function,
                     before=before,
                     arguments=arguments
-                    ))
-        return new_inside_function
+                ))
+            else:
+                return instrumentation(
+                    decorator(decorated_function),
+                    before=before,
+                    arguments=arguments
+                )
 
-    return new_decorator
+        return non_flat_decorator
+
+
+    if flat is True:
+        return flat_decorator
+    else:
+        return non_flat_decorator
+
+
+def _async_decorator_instrumentation(func, before=None, arguments=None, flat=False):
+    """
+    :arg func: Decorator to be wrapped
+    :arg before: See instrumentation
+    :arg arguments: See instrumentation
+    :arg flat: True if decorator is flat, False otherwise.
+    """
+    def flat_decorator(decorated_function):
+        @functools.wraps(flat_decorator)
+        async def new_decorator(*args, **kwargs):
+            operation_name = '{0}.{1}'.format(
+                decorated_function.__module__,
+                decorated_function.__name__
+            )
+            with opentracing.tracer.start_active_span(operation_name) as scope:
+                return await (instrumentation(
+                    func,
+                    before=before,
+                    arguments=arguments
+                    )(decorated_function))(*args, **kwargs)
+
+        return new_decorator
+
+    def non_flat_decorator(*args, **kwargs):
+        decorator = func(*args, **kwargs)
+
+        def non_flat_decorator(decorated_function):
+            @functools.wraps(non_flat_decorator)
+            async def new_decorator(*args, **kwargs):
+                operation_name = '{0}.{1}'.format(
+                    decorated_function.__module__,
+                    decorated_function.__name__
+                )
+                with opentracing.tracer.start_active_span(operation_name) as scope:
+                    return await (instrumentation(
+                        decorator,
+                        before=before,
+                        arguments=arguments
+                        )(decorated_function))(*args, **kwargs)
+
+            return new_decorator
+
+        return non_flat_decorator
+
+    if flat is True:
+        return flat_decorator
+    else:
+        return non_flat_decorator
 
 
 def patch_single(module, arguments=None, before=None):
     """
-    Patch single module with `func`. It automatically override target module to use instrumentation.
+    Automatically override target module to use instrumentation.
+    See `instrumentation` function for details about `arguments` and `before`
+
+    :arg module: Module to override
+    :arg arguments: See instrumentation
+    :arg before: See instrumentation
+
+    Consider simple example::
+
+        from requests import get
+        from logsense_opentracing.tracer import Tracer
+        from logsense_opentracing.instrumentation import patch_single
+
+        def foo():
+            print('bar')
+            get('https://logsense.com')
+
+        if __name__ == '__main__':
+            # Initialize tracer
+            tracer = Tracer(logsense_token='Your very own logsense token')
+            opentracing.tracer = tracer
+
+            # Patch functions to use opentracing
+            patch_single('__main__.foo')
+            patch_single('requests.get)
+
+            # Run application
+            foo()
+
     For decorators use patch_decorator
     """
     paths = module.split('.')
@@ -169,9 +292,34 @@ def patch_single(module, arguments=None, before=None):
 
 async def patch_async_single(module, arguments=None, before=None):
     """
-    Patch single module with `func`. It automatically override target module to use instrumentation.
-    For decorator use patch_async_decorator
-    The same as patch_single function, but in async version
+    Automatically override target module to use instrumentation.
+    See `instrumentation` function for details about `arguments` and `before`
+
+    :arg module: Module to override
+    :arg arguments: See instrumentation
+    :arg before: See instrumentation
+
+    Consider simple example::
+
+        from asyncio import get_event_loop
+        from logsense_opentracing.tracer import Tracer
+        from logsense_opentracing.instrumentation import patch_async_single
+
+        async def foo():
+            print('bar')
+
+        if __name__ == '__main__':
+            # Initialize tracer
+            tracer = Tracer(logsense_token='Your very own logsense token')
+            opentracing.tracer = tracer
+
+            # Patch functions to use opentracing
+            patch_async_single('__main__.foo')
+
+            # Run application
+            get_event_loop().run_until_complete(foo())
+
+    For decorators use patch_async_decorator
     """
     paths = module.split('.')
     mod = importlib.import_module(paths[0])
@@ -184,11 +332,98 @@ async def patch_async_single(module, arguments=None, before=None):
         ))
 
 
-def patch_decorator(module, arguments=None, before=None):
+def patch_decorator(module, arguments=None, before=None, flat=False, alternative=False):
     """
-    Patch single decorator module with `func`. It automatically override target module
-    to use instrumentation.
-    It's usable only for decorators
+    Automatically override target decorator to use instrumentation.
+    See `instrumentation` function for details about `arguments` and `before`
+
+    :arg module: Decorator to override
+    :arg arguments: See instrumentation
+    :arg before: See instrumentation
+    :arg flat: Set flat as True if decorator is not callable.
+        Not callable means, it's used `@decorator` instead of `@decorator(...)`.
+
+        **Decorators which supports both behaviors are not supported,**
+        **so you have to use `@decorator(...)` for them and flat=False**
+    :arg alternative:
+
+    Flat decorator example::
+
+        import logging
+        from logsense_opentracing.utils import setup_tracer, wait_on_tracer
+        from logsense_opentracing.instrumentation import patch_decorator
+
+
+        # Define or import decorators (it should be done before patching)
+        def flat_decorator(function):
+            def decorated_function(*args, **kwargs):
+                logging.info('Before executing function as flat')
+                result = function(*args, **kwargs)
+                logging.info('After executing function as flat')
+                return result
+
+            return decorated_function
+
+        # Decorator should be patched before using it.
+        patch_decorator('__main__.flat_decorator', flat=True)
+
+
+        # Use decorators
+        @flat_decorator
+        def hello_flat_world():
+            logging.info('Our world is flat')
+
+
+        if __name__ == '__main__':
+            # Initialize tracer
+            setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+
+            # Run application
+            hello_flat_world()
+
+            # Tracer should be finished explicit, because of multithreading approach
+            wait_on_tracer()
+
+    Non-flat decorator example::
+
+        import logging
+        from logsense_opentracing.utils import setup_tracer, wait_on_tracer
+        from logsense_opentracing.instrumentation import patch_decorator
+
+
+        # Define or import decorators (it should be done before patching)
+        def non_flat_decorator(first, second):
+            def decorator(function):
+                def decorated_function(*args, **kwargs):
+                    logging.info('First parameter is %s', first)
+                    result = function(*args, **kwargs)
+                    logging.info('Second parameter is %s', second)
+                    return result
+
+                return decorated_function
+            return decorator
+
+        # Decorator should be patched before using it.
+        patch_decorator('__main__.non_flat_decorator')
+
+
+        # Use decorators
+        @non_flat_decorator(1, 17)
+        def hello_sphere_world():
+            logging.info('Our world is sphere')
+
+
+        if __name__ == '__main__':
+            # Initialize tracer
+            setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+
+            # Run application
+            hello_sphere_world()
+
+            # Tracer should be finished explicit, because of multithreading approach
+            wait_on_tracer()
+
+    For ordinary functions use patch_single
     """
     paths = module.split('.')
     mod = importlib.import_module(paths[0])
@@ -197,31 +432,148 @@ def patch_decorator(module, arguments=None, before=None):
     setattr(mod, paths[-1], _decorator_instrumentation(
         getattr(mod, paths[-1]),
         before=before,
-        arguments=arguments
+        arguments=arguments,
+        flat=flat,
+        alternative=alternative
         ))
 
 
-async def patch_async_decorator(module, arguments=None, before=None):
+def patch_async_decorator(module, arguments=None, before=None, flat=False):
     """
     Patch single decorator module with `func`. It automatically override target module
     to use instrumentation.
     It's usable only for decorators
     The same as patch_decorator function, but in async version
+
+    Flat decorator example::
+
+        import logging
+        import functools
+        from asyncio import get_event_loop
+        from logsense_opentracing.utils import setup_tracer, wait_on_tracer
+        from logsense_opentracing.instrumentation import patch_async_decorator
+
+
+        # Define or import decorators (it should be done before patching)
+        def flat_decorator(function):
+            @functools.wraps(function)
+            async def decorated_function(*args, **kwargs):
+                logging.info('Before executing function as flat')
+                result = await function(*args, **kwargs)
+                logging.info('After executing function as flat')
+                return result
+
+            return decorated_function
+
+        # Decorator should be patched before using it.
+        patch_async_decorator('__main__.flat_decorator', flat=True)
+
+
+        # Use decorators
+        @flat_decorator
+        async def hello_flat_world():
+            logging.info('Our world is flat')
+
+
+        if __name__ == '__main__':
+            # Initialize tracer
+            setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+
+            # Run application
+            get_event_loop().run_until_complete(hello_flat_world())
+
+            # Tracer should be finished explicit, because of multithreading approach
+            wait_on_tracer()
+
+    Non-flat decorator example::
+
+        import logging
+        import functools
+        from asyncio import get_event_loop
+        from logsense_opentracing.utils import setup_tracer, wait_on_tracer
+        from logsense_opentracing.instrumentation import patch_async_decorator
+
+
+        # Define or import decorators (it should be done before patching)
+        def non_flat_decorator(first, second):
+            def decorator(function):
+                @functools.wraps(function)
+                async def decorated_function(*args, **kwargs):
+                    logging.info('First parameter is %s', first)
+                    result = function(*args, **kwargs)
+                    logging.info('Second parameter is %s', second)
+                    return result
+
+                return decorated_function
+            return decorator
+
+        # Decorator should be patched before using it.
+        patch_async_decorator('__main__.non_flat_decorator', flat=False)
+
+
+        # Use decorators
+        @non_flat_decorator(1, 17)
+        def hello_sphere_world():
+            logging.info('Our world is sphere')
+
+
+        if __name__ == '__main__':
+            # Initialize tracer
+            setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+
+            # Run application
+            get_event_loop().run_until_complete(hello_sphere_world())
+
+            # Tracer should be finished explicit, because of multithreading approach
+            wait_on_tracer()
     """
     paths = module.split('.')
     mod = importlib.import_module(paths[0])
     for i in range(1, len(paths)-1):
         mod = getattr(mod, paths[i])
-    setattr(mod, paths[-1], await _async_decorator_instrumentation(
+    setattr(mod, paths[-1], _async_decorator_instrumentation(
         getattr(mod, paths[-1]),
         before=before,
-        arguments=arguments
+        arguments=arguments,
+        flat=flat
         ))
 
 
 def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
     """
     Extract information from flask request and put into opentracing scope
+
+    ::
+
+        import logging
+        import asyncio
+        from flask import Flask
+        import opentracing
+
+        from logsense_opentracing.tracer import Tracer
+        from logsense_opentracing.instrumentation import patch_decorator, flask_route
+        from logsense_opentracing.utils import setup_tracer
+
+
+        app = Flask('hello-flask')
+
+        # Initialize tracer
+        setup_tracer(logsense_token='your own personal token')
+
+        # Decorator should be patched before using it.
+        patch_decorator('flask.Flask.route', before=flask_route, flat=False, alternative=True)
+
+        # Define routing
+        @app.route("/sayHello/<name>")
+        def say_hello(name):
+            import logging
+            logging.info('User %s entered', name)
+            return 'Hello {}'.format(name)
+
+
+        # Run application
+        if __name__ == "__main__":
+            app.run(port=8080)
     """
     from flask import request  # Optional import
 
@@ -236,7 +588,10 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
             data.split('=') for data in request.headers['logsense-baggage'].split(',')
             )
 
-    opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
+    try:
+        opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
+    except Exception as exception:
+        log.warning(exception)
 
     # Extract request information
     scope.span.set_tag('http.url', request.url)

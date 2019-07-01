@@ -1,8 +1,23 @@
 """
 Opentracing's Span implementation.
 
-More details:
-https://opentracing-python.readthedocs.io/en/latest/api.html#opentracing.Span
+`Opentracing documentation <https://opentracing-python.readthedocs.io/en/latest/api.html#opentracing.Span>`_
+
+To use logsense opentracing implementation you should use at least one span.
+There is not any automagic created main span
+
+To create your span, you can use this snippet::
+
+    import opentracing
+
+    ...
+
+    with opentracing.tracer.start_active_span('hello'):
+        ...
+
+You saw this code already. It creates new span with name `hello`.
+This name is using in logsense to track place of application your logs comes from,
+so should be as meaningful for you as possible
 """
 
 import time
@@ -11,7 +26,7 @@ import opentracing
 
 class Span(opentracing.Span):
     """
-    Implements opentracing.Span
+    Implements `opentracing.Span <https://opentracing-python.readthedocs.io/en/latest/api.html#opentracing.Span>`_
     """
 
     def __init__(self, *args, **kwargs):
@@ -27,7 +42,7 @@ class Span(opentracing.Span):
         self._duration = None
 
     @property
-    def duration_us(self):
+    def _duration_us(self):
         """
         Get span duration in microseconds
         """
@@ -37,9 +52,15 @@ class Span(opentracing.Span):
         return int(self._duration * 1e6)
 
     def set_tag(self, key, value):
+        """
+        Set tag to given value
+        """
         self._tags[key] = value
 
     def log_kv(self, key_values, timestamp=None):
+        """
+        Send structured logs from this span via logger
+        """
         timestamp = time.time() if timestamp is None else timestamp
         self._logs.append({
             'timestamp': timestamp,
@@ -47,6 +68,9 @@ class Span(opentracing.Span):
         })
 
     def finish(self, finish_time=None):
+        """
+        Called at the end of span
+        """
         self._end_timestamp = time.time()
         self._duration = self._end_timestamp - self._start_timestamp
 
@@ -63,7 +87,7 @@ class Span(opentracing.Span):
             data.update(self._tags)
             data.update(self.context.data)
             data.update({
-                'duration_us': self.duration_us,
+                'duration_us': self._duration_us,
                 'time_position_us': round((log['timestamp'] - self._start_timestamp) * 1e6)
             })
 
@@ -77,8 +101,14 @@ class Span(opentracing.Span):
 
 
     def set_baggage_item(self, key, value):
+        """
+        Set baggage item. Useful for inter-application tracing
+        """
         self.context.set_baggage(key, value)
         return self
 
     def get_baggage_item(self, key):
+        """
+        Get baggage item value
+        """
         return self.context.baggage.get(key)

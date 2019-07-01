@@ -6,6 +6,10 @@ because responsibility for sending data to the collector is moved to the tracer
 import logging
 import opentracing
 
+
+log = logging.getLogger('logsense.opentracing')
+
+
 class OpentracingLogsenseHandler(logging.Handler):
     """
     Logging Handler for logsense  opentracing.
@@ -17,6 +21,7 @@ class OpentracingLogsenseHandler(logging.Handler):
     def emit(self, record):
         active_span = opentracing.tracer.active_span
         if active_span is None:
+            log.debug('No active span for log: %s', record.getMessage())
             return None
 
         dict_to_log = {
@@ -33,7 +38,6 @@ class OpentracingLogsenseHandler(logging.Handler):
         else:
             dict_to_log['message'] = record.getMessage()
 
-        print(dict_to_log)
         active_span.log_kv(dict_to_log)
         return None
 

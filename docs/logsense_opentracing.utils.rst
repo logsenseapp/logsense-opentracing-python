@@ -1,7 +1,7 @@
-Span
-====
+Utils
+=====
 
-.. automodule:: logsense_opentracing.span
+.. automodule:: logsense_opentracing.utils
     :members:
     :undoc-members:
     :show-inheritance:

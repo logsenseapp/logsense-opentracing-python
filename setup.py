@@ -28,5 +28,10 @@ setup(
     install_requires=[
         'opentracing==2.0.0',
         'logsense-logger==0.2.0'
+        ],
+    extras_require={
+        'flask': [
+            'flask'
         ]
+    }
 )

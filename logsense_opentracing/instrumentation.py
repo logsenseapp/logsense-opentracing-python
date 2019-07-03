@@ -56,17 +56,17 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
 
             # set default arguments
             for name, value in zip(reversed(function_args), reversed(function_defaults)):
-                if name in arguments or arguments is ALL_ARGS:
+                if arguments is ALL_ARGS or name in arguments:
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by args
             for name, value in zip(function_args, args):
-                if name in arguments or arguments is ALL_ARGS:
+                if arguments is ALL_ARGS or name in arguments:
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by kwargs
             for name, value in kwargs.items():
-                if name in arguments or arguments is ALL_ARGS:
+                if arguments is ALL_ARGS or name in arguments:
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # execute function

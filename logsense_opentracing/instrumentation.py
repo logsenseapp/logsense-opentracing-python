@@ -15,6 +15,7 @@ import functools
 import importlib
 import inspect
 import opentracing
+import types
 
 log = logging.getLogger('logsense_opentracing.instrumentation')
 
@@ -73,7 +74,7 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
             scope.span.set_tag('error', False)
 
             # skip self as it's already included in inside_function definition
-            if function_args[0] == 'self':
+            if isinstance(inside_function, types.FunctionType):
                 args = args[1:]
 
             try:

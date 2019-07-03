@@ -18,6 +18,8 @@ import opentracing
 
 log = logging.getLogger('logsense_opentracing.instrumentation')
 
+ALL_ARGS = object()
+
 def instrumentation(inside_function, before=None, after=None, arguments=None):
     """
     Wraps `inside_function` as opentracing span
@@ -26,7 +28,8 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
     :arg before: Function which is going to be run before executing function. It's executed in tracer scope
     :arg after: Function which is going to be run after executing function.
         It's executed in tracer scope. It's called even if inside_function throw exception
-    :arg arguments: Arguments which are going to be reported to the opentracing server
+    :arg arguments: Arguments which are going to be reported to the opentracing server.
+        ALL_ARGS for reporting all arguments
 
     This function is internal and shouldn't be call outside of the module
 
@@ -53,17 +56,17 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
 
             # set default arguments
             for name, value in zip(reversed(function_args), reversed(function_defaults)):
-                if name in arguments:
+                if name in arguments or arguments is ALL_ARGS:
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by args
             for name, value in zip(function_args, args):
-                if name in arguments:
+                if name in arguments or arguments is ALL_ARGS:
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by kwargs
             for name, value in kwargs.items():
-                if name in arguments:
+                if name in arguments or arguments is ALL_ARGS:
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # execute function

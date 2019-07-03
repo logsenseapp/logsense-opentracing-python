@@ -5,30 +5,42 @@ import time
 import asyncio
 import opentracing
 
+from logsense_opentracing.utils import setup_tracer
 from logsense_opentracing.tracer import Tracer
 
 
-log = logging.getLogger()  # pylint: disable=invalid-name
-tracer = Tracer()  # pylint: disable=invalid-name
-opentracing.tracer = tracer
+# Initialize tracer
+setup_tracer(logsense_token='6bfd7d2f-7d45-414a-899d-f85175b08980')
+
 ioloop = asyncio.get_event_loop()  # pylint: disable=invalid-name
 
 async def finish():
+    # Ensure all logs were sent correctly
     opentracing.tracer.finish()
     ioloop.stop()
 
 async def app():
+    # Create parent span
     with opentracing.tracer.start_active_span('parent-span') as scope:
-        scope.span.set_tag('appname', 'async')
+        scope.span.set_tag('app_name', 'async')
         scope.span.set_tag('event', 'true')
-        time.sleep(random.randint(1, 3))
-        with opentracing.tracer.start_active_span('child-span', child_of=scope) as new_scope:
-            time.sleep(random.randint(1, 3))
+
+        await asyncio.sleep(random.randint(1, 3))
+
+        # Create child span as child of parent-span
+        with opentracing.tracer.start_active_span(
+            'child-span', child_of=scope) as new_scope:
+
+            await asyncio.sleep(random.randint(1, 3))
+
+            # Log from child span
             new_scope.span.log_kv({
                 'message': 'Log from child-span',
                 'relation': 'child'
             })
-        time.sleep(random.randint(1, 3))
+
+        await asyncio.sleep(random.randint(1, 3))
+        # Log from parent span
         scope.span.log_kv({
             'message': 'Log from parent-span',
             'relation': 'parent'

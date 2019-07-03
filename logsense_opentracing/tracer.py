@@ -8,6 +8,7 @@ https://opentracing-python.readthedocs.io/en/latest/api.html#opentracing.Tracer
 import time
 import random
 import os
+import json
 from queue import Queue, Empty
 from threading import Lock, Thread
 import opentracing
@@ -27,11 +28,7 @@ class _DummySender:
         pass
 
     def emit_with_time(self, label, timestamp, data):
-        print({
-            'label': label,
-            'timestamp': timestamp,
-            'data': data
-        })
+        print('{} {} {}'.format(timestamp, label, json.dumps(data, indent=4)))
 
 
 class Tracer(opentracing.Tracer):
@@ -65,7 +62,8 @@ class Tracer(opentracing.Tracer):
                           tags=None,
                           start_time=None,
                           ignore_active_span=False,
-                          finish_on_close=True):
+                          finish_on_close=True,
+                          component=None):
 
         # Get parent's scope from arguments or by scope manager otherwise
         parent = child_of if child_of is not None else self._scope_manager.active
@@ -76,9 +74,11 @@ class Tracer(opentracing.Tracer):
         span = Span(tracer=self, context=SpanContext(
             span_id=self._random_id(),
             trace_id=trace_id,
-            baggage=parent.span.context.baggage if parent is not None else None
+            baggage=parent.span.context.baggage if parent is not None else None,
+            parent=parent
             ))
         span.set_tag('operation_name', operation_name)
+        span.set_tag('component', component if component is not None else operation_name)
 
         self._scope_manager.activate(span, finish_on_close=True)
         scope = Scope(self._scope_manager, span)

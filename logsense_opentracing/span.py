@@ -76,6 +76,9 @@ class Span(opentracing.Span):
 
         self.tracer.put_to_queue(self)
 
+    def _prefix_keys(self, data):
+        return {'ot.{}'.format(key): value for key, value in data.items()}
+
     def get_data(self) -> dict:
         """
         Data which should be send to the logsense client
@@ -84,12 +87,15 @@ class Span(opentracing.Span):
 
         for log in self._logs:
             data = log['log']
-            data.update(self._tags)
-            data.update(self.context.data)
-            data.update({
+            _type = 'trace' if log['log'] == {} else 'python'
+            data.update(self._prefix_keys(self._tags))
+            data.update(self._prefix_keys(self.context.data))
+            data.update(self._prefix_keys({
                 'duration_us': self._duration_us,
                 'time_position_us': round((log['timestamp'] - self._start_timestamp) * 1e6)
-            })
+            }))
+
+            data['_type'] = _type
 
             return_value.append({
                 'label': 'opentracing',

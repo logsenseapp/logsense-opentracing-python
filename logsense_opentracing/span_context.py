@@ -18,10 +18,12 @@ class SpanContext(opentracing.SpanContext):
     def __init__(self,
                  trace_id,
                  span_id,
-                 baggage=None):
+                 baggage=None,
+                 parent=None):
         self.trace_id = trace_id
         self.span_id = span_id
         self._baggage = baggage or opentracing.SpanContext.EMPTY_BAGGAGE
+        self._parent = parent
 
     @property
     def baggage(self):
@@ -38,7 +40,12 @@ class SpanContext(opentracing.SpanContext):
         """
         Data which should be sent to the opentracing server
         """
-        return {
+        return_value = {
             'trace_id': self.trace_id,
-            'span_id': self.span_id,
+            'span_id': self.span_id
         }
+
+        if self._parent is not None:
+            return_value['parent_span_id'] = self._parent.span.context.span_id
+
+        return return_value

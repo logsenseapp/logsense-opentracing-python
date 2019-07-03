@@ -24,7 +24,7 @@ setup(
     author_email='drosiek@collective-sense.com',
     url='https://github.com/collectivesense/logsense-opentracing-python',
     license=LICENSE,
-    packages=find_packages(exclude=('examples',)),
+    packages=find_packages(exclude=('examples', 'tests')),
     install_requires=[
         'opentracing==2.0.0',
         'logsense-logger==0.2.0'

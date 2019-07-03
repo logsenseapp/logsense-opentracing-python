@@ -18,7 +18,7 @@ with open(join(package_dir, 'LICENSE.md')) as f:
 setup(
     name='logsense-opentracing-tracker',
     version=__version__,
-    description='Logsen Opentracing Tracker',
+    description='Logsense Opentracing Tracker',
     long_description=README,
     author='Dominik Rosiek',
     author_email='drosiek@collective-sense.com',

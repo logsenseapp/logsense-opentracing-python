@@ -73,8 +73,9 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
             # execute function
             scope.span.set_tag('error', False)
 
-            # skip self as it's already included in inside_function definition
-            if isinstance(inside_function, types.FunctionType):
+            # skip self if method is static
+            # ToDo: Improve checking if method is static or not
+            if len(args) + len(kwargs) > len(function_args):
                 args = args[1:]
 
             try:

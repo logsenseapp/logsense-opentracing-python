@@ -71,6 +71,11 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
 
             # execute function
             scope.span.set_tag('error', False)
+
+            # skip self as it's already included in inside_function definition
+            if function_args[0] == 'self':
+                args = args[1:]
+
             try:
                 result = inside_function(*args, **kwargs)
 

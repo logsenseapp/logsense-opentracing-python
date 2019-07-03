@@ -80,7 +80,7 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
                 args = args[1:]
 
             # Should be class method, remove first argument
-            if function_args[0] == 'cls':
+            if len(function_args) > 0 and function_args[0] == 'cls':
                 args = args[1:]
 
             try:
@@ -615,3 +615,14 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
     scope.span.set_tag('http.url', request.url)
     scope.span.set_tag('http.method', request.method)
     scope.span.set_tag('peer.ipv4', request.remote_addr)
+
+
+def patch_module(module):
+    paths = module.split('.')
+    mod = importlib.import_module(paths[0])
+    for i in range(1, len(paths)):
+        mod = getattr(mod, paths[i])
+
+    for function in dir(mod):
+        if inspect.isfunction(getattr(mod, function)):
+            patch_single('{}.{}'.format(module, function))

@@ -19,7 +19,7 @@ Here is shortest example of using opentracing with logsense tracer::
 
     if __name__ == '__main__':
         # Initialize tracer
-        setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+        setup_tracer(logsense_token='Your very own logsense token')
 
         # Run application
         with opentracing.tracer.start_active_span('hello'):
@@ -32,13 +32,15 @@ Description of `opentracing.tracer.start_active_span` is available in further re
 
 `setup_tracer` and `wait_on_tracer` are just below
 """
+import os
 import logging
 import opentracing
 
+from logsense.sender import LogSenseSender
 from logsense_opentracing.tracer import Tracer
 from logsense_opentracing.handler import OpentracingLogsenseHandler
 
-def setup_tracer(logsense_token, logger=None, dummy_sender=False):
+def setup_tracer(logsense_token=None, logger=None, sender=None):
     """
     Setups tracer with all required informations.
 
@@ -49,12 +51,11 @@ def setup_tracer(logsense_token, logger=None, dummy_sender=False):
     To do it, just call::
 
         from logsense_opentracing.utils import setup_tracer
-        setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+        setup_tracer(logsense_token='Your very own logsense token')
 
     :arg logsense_token: your own personal token in UUID format.
     :arg logger: logger name. All logs logged by this logger will be pushed to the logsense platform.
-    :arg dummy_sender: for testing purposes.
-        Set it to True to see what will be send without actually sending it.
+    :arg sender: You can use your own sender
 
     Return:
         * `opentracing.Tracer` - tracer instantion. It's already saved as `opentracing.tracer`,
@@ -68,7 +69,11 @@ def setup_tracer(logsense_token, logger=None, dummy_sender=False):
     logsense_log = logging.getLogger('logsense.opentracing')
     logsense_log.propagate = False
 
-    tracer = Tracer(logsense_token=logsense_token, dummy_sender=dummy_sender)  # pylint: disable=invalid-name
+    logsense_token = os.getenv('LOGSENSE_TOKEN', logsense_token)  # pylint: disable=unused-variable
+
+    sender = LogSenseSender(logsense_token) if sender is None else sender
+
+    tracer = Tracer(sender=sender)  # pylint: disable=invalid-name
     opentracing.tracer = tracer
     return tracer
 

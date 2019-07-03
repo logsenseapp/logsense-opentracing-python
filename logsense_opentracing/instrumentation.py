@@ -61,7 +61,8 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
             # override arguments by args
-            for name, value in zip(function_args, args):
+            # Iterate from end, because it works incorrectly for static method
+            for name, value in zip(reversed(function_args), reversed(args)):
                 if arguments is ALL_ARGS or name in arguments:
                     scope.span.set_tag('kwarg.{0}'.format(name), str(value))
 
@@ -75,7 +76,11 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
 
             # skip self if method is static
             # ToDo: Improve checking if method is static or not
-            if len(args) + len(kwargs) > len(function_args):
+            if len(args) + len(kwargs) == len(function_args) + 1:
+                args = args[1:]
+
+            # Should be class method, remove first argument
+            if function_args[0] == 'cls':
                 args = args[1:]
 
             try:
@@ -293,11 +298,14 @@ def patch_single(module, arguments=None, before=None):
     mod = importlib.import_module(paths[0])
     for i in range(1, len(paths)-1):
         mod = getattr(mod, paths[i])
-    setattr(mod, paths[-1], instrumentation(
+
+    patched_function = instrumentation(
         getattr(mod, paths[-1]),
         before=before,
         arguments=arguments
-        ))
+        )
+    setattr(mod, paths[-1], patched_function)
+    return patched_function
 
 
 async def patch_async_single(module, arguments=None, before=None):
@@ -386,7 +394,7 @@ def patch_decorator(module, arguments=None, before=None, flat=False, alternative
 
         if __name__ == '__main__':
             # Initialize tracer
-            setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+            setup_tracer(logsense_token='Your very own logsense token')
 
             # Run application
             hello_flat_world()
@@ -425,7 +433,7 @@ def patch_decorator(module, arguments=None, before=None, flat=False, alternative
 
         if __name__ == '__main__':
             # Initialize tracer
-            setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+            setup_tracer(logsense_token='Your very own logsense token')
 
             # Run application
             hello_sphere_world()
@@ -487,7 +495,7 @@ def patch_async_decorator(module, arguments=None, before=None, flat=False):
 
         if __name__ == '__main__':
             # Initialize tracer
-            setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+            setup_tracer(logsense_token='Your very own logsense token')
 
             # Run application
             get_event_loop().run_until_complete(hello_flat_world())
@@ -529,7 +537,7 @@ def patch_async_decorator(module, arguments=None, before=None, flat=False):
 
         if __name__ == '__main__':
             # Initialize tracer
-            setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+            setup_tracer(logsense_token='Your very own logsense token')
 
             # Run application
             get_event_loop().run_until_complete(hello_sphere_world())

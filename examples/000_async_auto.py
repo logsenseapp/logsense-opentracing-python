@@ -4,6 +4,8 @@ Example of instrumentation of asynchronous functions
 import logging
 import asyncio
 
+import opentracing
+
 from logsense_opentracing.utils import setup_tracer
 from logsense_opentracing.instrumentation import patch_async_single
 

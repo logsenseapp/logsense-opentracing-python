@@ -9,8 +9,8 @@ from logsense_opentracing.tracer import Tracer
 
 
 # Initialize tracer
-# setup_tracer(logsense_token='6bfd7d2f-7d45-414a-899d-f85175b08980', dummy_sender=False)
-setup_tracer(logsense_token='a0ca3c77-5f27-4b17-802d-bd7f6895b1f8', dummy_sender=False)
+# setup_tracer(logsense_token='6bfd7d2f-7d45-414a-899d-f85175b08980')
+setup_tracer(logsense_token='a0ca3c77-5f27-4b17-802d-bd7f6895b1f8')
 
 
 with opentracing.tracer.start_active_span('parent-span') as scope:

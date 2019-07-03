@@ -11,7 +11,7 @@ from logsense_opentracing.utils import setup_tracer
 app = Flask('hello-flask')
 
 # Initialize tracer
-setup_tracer(logsense_token='6bfd7d2f-7d45-414a-899d-f85175b08980', dummy_sender=True)
+setup_tracer(logsense_token='6bfd7d2f-7d45-414a-899d-f85175b08980')
 
 # Decorator should be patched before using it.
 patch_decorator('flask.Flask.route', before=flask_route, flat=False, alternative=True)

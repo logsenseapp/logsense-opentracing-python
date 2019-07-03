@@ -30,7 +30,7 @@ def hello_sphere_world():
 
 if __name__ == '__main__':
     # Initialize tracer
-    setup_tracer(logsense_token='Your very own logsense token', dummy_sender=True)
+    setup_tracer(logsense_token='Your very own logsense token')
 
     # Run application
     get_event_loop().run_until_complete(hello_sphere_world())

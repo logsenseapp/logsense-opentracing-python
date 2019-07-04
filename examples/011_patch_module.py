@@ -10,7 +10,7 @@ from logsense_opentracing.utils import setup_tracer
 from logsense_opentracing.instrumentation import patch_async_single, patch_module
 from logsense_opentracing.tracer import _DummySender
 
-# Initialize tracer
+# Initialize dummy tracer
 setup_tracer(sender=_DummySender())
 
 
@@ -40,6 +40,6 @@ class TestModule:
 
 
 # Add instrumentation without doing enything in original functions
-patch_module('__main__.TestModule')
+patch_module('__main__', include_paths=['__main__'])
 
 TestModule.main()

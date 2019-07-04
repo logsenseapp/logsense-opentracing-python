@@ -617,12 +617,62 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
     scope.span.set_tag('peer.ipv4', request.remote_addr)
 
 
-def patch_module(module):
+def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
+    """
+    Experimental
+
+
+    """
+    # Import module and skip builtins
     paths = module.split('.')
+    if paths[0] in ('builtins', ):
+        return
+
     mod = importlib.import_module(paths[0])
     for i in range(1, len(paths)):
         mod = getattr(mod, paths[i])
 
+
+    # Iterate over all methods
     for function in dir(mod):
-        if inspect.isfunction(getattr(mod, function)):
-            patch_single('{}.{}'.format(module, function))
+        # Skip f method is not an attribute
+        if not hasattr(mod, function):
+            continue
+
+        # Skip all dunderscore methods
+        if function.startswith('__'):
+            continue
+
+        current = getattr(mod, function)
+
+        if not hasattr(current, '__module__'):
+            # Skip all root level modules
+            continue
+
+        # Skip already patched modules
+        if hasattr(current, '_logsense_patched'):
+            continue
+
+        try:
+            setattr(current, '_logsense_patched', True)
+        except AttributeError:
+            # Skip all methods for which cannot set patching flag
+            continue
+
+        new_path = '{}.{}'.format('.'.join(paths), function)
+
+        if paths[0] != current.__module__.split('.')[0]:
+            # Use module path instead of current path
+            new_path = '{}.{}'.format(current.__module__, current.__name__)
+
+        if inspect.isfunction(current):
+            log.info('Patching function %s', new_path)
+            patch_single(new_path)
+        elif inspect.ismodule(current):
+            # currently do nothing, Will back here with new ideas
+            pass
+        elif inspect.isclass(current):
+            for path in include_paths if include_paths is not None else []:
+                if current.__module__.startswith(path):
+                    log.info('Patching module %s', current)
+                    patch_module(new_path, recursive=True, include_paths=include_paths, exclude_path=exclude_path)

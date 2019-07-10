@@ -7,7 +7,6 @@ from logsense_opentracing.instrumentation import patch_decorator, patch_single
 def non_flat_decorator(first, second):
     def decorator(function):
         def decorated_function(*args, **kwargs):
-            print('decorated')
             logging.info('First parameter is %s', first)
             result = function(*args, **kwargs)
             logging.info('Second parameter is %s', second)

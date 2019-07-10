@@ -13,7 +13,7 @@ def hello_logsense():
 
 if __name__ == '__main__':
     # Initialize tracer
-    setup_tracer(logsense_token='Your very own logsense token')
+    setup_tracer()
 
     # Run application
     with opentracing.tracer.start_active_span('hello'):

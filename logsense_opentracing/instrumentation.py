@@ -17,9 +17,14 @@ import inspect
 import opentracing
 import types
 
-log = logging.getLogger('logsense_opentracing.instrumentation')
+log = logging.getLogger('logsense.opentracing.instrumentation')
 
 ALL_ARGS = object()
+
+HTTP_SPAN_ID = 'ot-tracer-spanid'
+HTTP_TRACE_ID = 'ot-tracer-traceid'
+HTTP_BAGGAGE_PREFIX = 'ot-baggage-'
+
 
 def instrumentation(inside_function, before=None, after=None, arguments=None):
     """
@@ -47,7 +52,7 @@ def instrumentation(inside_function, before=None, after=None, arguments=None):
             # Run `before` hook
             if before is not None:
                 try:
-                    before(scope, *args, **kwargs)
+                    args, kwargs = before(scope, *args, **kwargs)
                 except Exception as exception:
                     log.warning(exception)
 
@@ -596,15 +601,26 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
     from flask import request  # Optional import
 
     # Extract trace if available
-    carrier = {}
+    carrier = {
+        'baggage': {}
+    }
+    if request.headers.get(HTTP_TRACE_ID):
+        try:
+            carrier['trace_id'] = int(request.headers[HTTP_TRACE_ID], 16)
+        except ValueError:
+            log.warning('Incorrect header value: %s', request.headers[HTTP_TRACE_ID])
 
-    if request.headers.get('logsense-trace-id'):
-        carrier['trace_id'] = request.headers['logsense-trace-id']
+    if request.headers.get(HTTP_SPAN_ID):
+        try:
+            carrier['span_id'] = int(request.headers[HTTP_SPAN_ID], 16)
+        except ValueError:
+            log.warning('Incorrect header value: %s', request.headers[HTTP_SPAN_ID])
 
-    if 'logsense-baggage' in request.headers:
-        carrier['baggage'] = dict(
-            data.split('=') for data in request.headers['logsense-baggage'].split(',')
-            )
+    prefix_len = len(HTTP_BAGGAGE_PREFIX)
+
+    for name, value in request.headers.items():
+        if name.startswith(HTTP_BAGGAGE_PREFIX) and name != HTTP_BAGGAGE_PREFIX:
+            carrier[name[prefix_len:]] = value
 
     try:
         opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
@@ -615,6 +631,47 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
     scope.span.set_tag('http.url', request.url)
     scope.span.set_tag('http.method', request.method)
     scope.span.set_tag('peer.ipv4', request.remote_addr)
+
+    return args, kwargs
+
+
+def tornado_route(scope, *args, **kwargs):
+    handler = args[0]
+
+    # Extract trace if available
+    carrier = {
+        'baggage': {}
+    }
+
+    if handler.request.headers.get(HTTP_TRACE_ID):
+        try:
+            carrier['trace_id'] = int(handler.request.headers[HTTP_TRACE_ID], 16)
+        except ValueError:
+            log.warning('Incorrect header value: %s', handler.request.headers[HTTP_TRACE_ID])
+
+    if handler.request.headers.get(HTTP_SPAN_ID):
+        try:
+            carrier['span_id'] = int(handler.request.headers[HTTP_SPAN_ID], 16)
+        except ValueError:
+            log.warning('Incorrect header value: %s', handler.request.headers[HTTP_SPAN_ID])
+
+    prefix_len = len(HTTP_BAGGAGE_PREFIX)
+
+    for name, value in handler.request.headers.items():
+        if name.startswith(HTTP_BAGGAGE_PREFIX) and name != HTTP_BAGGAGE_PREFIX:
+            carrier[name[prefix_len:]] = value
+
+    try:
+        opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
+    except Exception as exception:
+        log.warning(exception)
+
+    # Extract request information
+    scope.span.set_tag('http.url', handler.request.full_url())
+    scope.span.set_tag('http.method', handler.request.method)
+    scope.span.set_tag('peer.ipv4', handler.request.remote_ip)
+
+    return args, kwargs
 
 
 def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
@@ -676,3 +733,19 @@ def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
                 if current.__module__.startswith(path):
                     log.info('Patching module %s', current)
                     patch_module(new_path, recursive=True, include_paths=include_paths, exclude_path=exclude_path)
+
+
+def requests_baggage(scope, method, url, **kwargs):
+    if kwargs.get('headers') is None:
+        kwargs['headers'] = {}
+
+    baggage = {}
+
+    opentracing.tracer.inject(scope.span, opentracing.propagation.Format.TEXT_MAP, baggage)
+
+    kwargs['headers'][HTTP_TRACE_ID] = hex(int(baggage['trace_id']))[2:]  # strip '0x'
+    kwargs['headers'][HTTP_SPAN_ID] = hex(int(baggage['span_id']))[2:]
+    for key, value in baggage['baggage'].items():
+        kwargs['headers']['{}{}'.format(HTTP_BAGGAGE_PREFIX, key)] = value
+
+    return (method, url), kwargs

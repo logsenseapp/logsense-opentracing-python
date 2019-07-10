@@ -40,7 +40,7 @@ from logsense.sender import LogSenseSender
 from logsense_opentracing.tracer import Tracer
 from logsense_opentracing.handler import OpentracingLogsenseHandler
 
-def setup_tracer(logsense_token=None, logger=None, sender=None):
+def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
     """
     Setups tracer with all required informations.
 
@@ -73,7 +73,7 @@ def setup_tracer(logsense_token=None, logger=None, sender=None):
 
     sender = LogSenseSender(logsense_token) if sender is None else sender
 
-    tracer = Tracer(sender=sender)  # pylint: disable=invalid-name
+    tracer = Tracer(sender=sender, component=component)  # pylint: disable=invalid-name
     opentracing.tracer = tracer
     return tracer
 

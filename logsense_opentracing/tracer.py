@@ -9,6 +9,7 @@ import time
 import random
 import os
 import json
+import logging
 from queue import Queue, Empty
 from threading import Lock, Thread
 import opentracing
@@ -17,6 +18,9 @@ from .span import Span
 from .scope import Scope
 from .span_context import SpanContext
 from .scope_manager import ScopeManager
+
+
+log = logging.getLogger('logsense.opentracing.tracer')
 
 
 class _DummySender:
@@ -36,7 +40,7 @@ class Tracer(opentracing.Tracer):
     """
     _supported_formats = [opentracing.propagation.Format.TEXT_MAP]
 
-    def __init__(self, scope_manager=None, sender=None):
+    def __init__(self, scope_manager=None, sender=None, component=None):
         super().__init__(scope_manager=scope_manager)
 
         self._scope_manager = ScopeManager()  if scope_manager is None else scope_manager
@@ -49,6 +53,7 @@ class Tracer(opentracing.Tracer):
 
         self._thread = Thread(target=self.process)
         self._thread.start()
+        self._component = component
 
     def start_active_span(self,  # pylint: disable=too-many-arguments
                           operation_name,
@@ -73,7 +78,9 @@ class Tracer(opentracing.Tracer):
             parent=parent
             ))
         span.set_tag('operation_name', operation_name)
-        span.set_tag('component', component if component is not None else operation_name)
+        span.set_tag('component', component if component is not None else \
+                                  self._component if self._component is not None else \
+                                  operation_name)
 
         self._scope_manager.activate(span, finish_on_close=True)
         scope = Scope(self._scope_manager, span)
@@ -124,13 +131,22 @@ class Tracer(opentracing.Tracer):
         if format != opentracing.propagation.Format.TEXT_MAP:
             raise opentracing.propagation.UnsupportedFormatException(format)
 
-        mandatory_keys = {'trace_id', 'baggage'}
+        mandatory_keys = {'trace_id', 'baggage', 'span_id'}
         keys_difference = mandatory_keys - set(carrier.keys())
         if keys_difference:
-            error_msg = 'Carrier incomplete. Lack of few keys: {keys}'.format(keys=keys_difference)
-            raise ValueError(error_msg)
+            log.warning('Carrier incomplete. Lack of few keys: {keys}'.format(keys=keys_difference))
+            return active_context
 
         active_context.trace_id = str(carrier['trace_id'])
+
+        # Create fake scope just to be parent scope
+        # ToDO: Improve parent managing. Aim is to avoid this hack
+        active_context._parent = Scope(self._scope_manager, span=Span(tracer=self,
+            context=SpanContext(
+                span_id=str(carrier['span_id']),
+                trace_id=active_context.trace_id,
+                baggage=carrier['baggage'] or None
+        )))
 
         for key, value in carrier['baggage'].items():
             active_context.set_baggage(key, value)
@@ -149,10 +165,10 @@ class Tracer(opentracing.Tracer):
             raise ValueError('Expecting SpanContext, not {}'.format(type(span_context)))
 
         carrier['baggage'] = {}
-        carrier['trace_id'] = span_context.trace_id
-        carrier['span_id'] = span_context.span_id
+        carrier['trace_id'] = str(span_context.trace_id)
+        carrier['span_id'] = str(span_context.span_id)
 
-        for key, value in span_context.items():
+        for key, value in span_context.baggage.items():
             carrier[key] = value
 
         return span_context

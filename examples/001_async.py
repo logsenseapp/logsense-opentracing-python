@@ -10,7 +10,7 @@ from logsense_opentracing.tracer import Tracer
 
 
 # Initialize tracer
-setup_tracer(logsense_token='6bfd7d2f-7d45-414a-899d-f85175b08980')
+setup_tracer()
 
 ioloop = asyncio.get_event_loop()  # pylint: disable=invalid-name
 

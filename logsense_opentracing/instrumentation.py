@@ -729,6 +729,8 @@ def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
             # Use module path instead of current path
             new_path = '{}.{}'.format(current.__module__, current.__name__)
 
+        if inspect.iscoroutinefunction(current)
+            patch_async_single(new_path)
         if inspect.isfunction(current):
             log.info('Patching function %s', new_path)
             patch_single(new_path)

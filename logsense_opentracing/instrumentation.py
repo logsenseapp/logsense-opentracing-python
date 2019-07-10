@@ -16,6 +16,7 @@ import importlib
 import inspect
 import opentracing
 import types
+import asyncio
 
 log = logging.getLogger('logsense.opentracing.instrumentation')
 
@@ -730,8 +731,10 @@ def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
             new_path = '{}.{}'.format(current.__module__, current.__name__)
 
         if inspect.iscoroutinefunction(current):
-            patch_async_single(new_path)
-        if inspect.isfunction(current):
+            log.info('Patching async function %s', new_path)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(patch_async_single(new_path))
+        elif inspect.isfunction(current):
             log.info('Patching function %s', new_path)
             patch_single(new_path)
         elif inspect.ismodule(current):

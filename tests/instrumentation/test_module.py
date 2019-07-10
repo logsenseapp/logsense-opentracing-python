@@ -15,7 +15,7 @@ class TestRegularClass(TestCase):
         setup_tracer('test_token', sender=self.sender)
 
     def test_module(self):
-        patch_module('tests.module.module_class')
+        patch_module('tests.module.module_class.ModuleClass')
 
     def tearDown(self):
         opentracing.tracer.finish()

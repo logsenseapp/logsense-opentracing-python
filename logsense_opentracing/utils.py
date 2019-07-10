@@ -35,6 +35,7 @@ Description of `opentracing.tracer.start_active_span` is available in further re
 import os
 import logging
 import opentracing
+import time
 
 from logsense.sender import LogSenseSender
 from logsense_opentracing.tracer import Tracer
@@ -68,6 +69,12 @@ def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
     # Do not propagate logsense.opentracing logger
     logsense_log = logging.getLogger('logsense.opentracing')
     logsense_log.propagate = False
+    logsense_log.setLevel(logging.DEBUG)
+    logsense_log_handler = logging.StreamHandler()
+    logsense_log_formatter = logging.Formatter('%(asctime)s [%(levelname)-8s]: [lgsns-ot] %(message)s')
+    logsense_log_formatter.converter = time.gmtime
+    logsense_log_handler.setFormatter(logsense_log_formatter)
+    logsense_log.addHandler(logsense_log_handler)
 
     logsense_token = os.getenv('LOGSENSE_TOKEN', logsense_token)  # pylint: disable=unused-variable
 

@@ -230,7 +230,7 @@ def _async_decorator_instrumentation(func, before=None, arguments=None, flat=Fal
                 decorated_function.__module__,
                 decorated_function.__name__
             )
-            with opentracing.tracer.start_active_span(operation_name) as scope:
+            with opentracing.tracer.start_active_span(operation_name):
                 return await (instrumentation(
                     func,
                     before=before,
@@ -249,7 +249,7 @@ def _async_decorator_instrumentation(func, before=None, arguments=None, flat=Fal
                     decorated_function.__module__,
                     decorated_function.__name__
                 )
-                with opentracing.tracer.start_active_span(operation_name) as scope:
+                with opentracing.tracer.start_active_span(operation_name):
                     return await (instrumentation(
                         decorator,
                         before=before,
@@ -299,6 +299,8 @@ def patch_single(module, arguments=None, before=None):
 
     For decorators use patch_decorator
     """
+    log.info('Patching function %s with arguments: %s', module, arguments)
+
     paths = module.split('.')
     mod = importlib.import_module(paths[0])
     for i in range(1, len(paths)-1):
@@ -344,6 +346,8 @@ async def patch_async_single(module, arguments=None, before=None):
 
     For decorators use patch_async_decorator
     """
+    log.info('Patching async function %s with arguments: %s', module, arguments)
+
     paths = module.split('.')
     mod = importlib.import_module(paths[0])
     for i in range(1, len(paths)-1):
@@ -680,6 +684,9 @@ def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
 
 
     """
+    log.warning('Patching module is an experimental feature')
+    log.info('Patching module %s', module)
+
     # Import module and skip builtins
     paths = module.split('.')
     if paths[0] in ('builtins', ):

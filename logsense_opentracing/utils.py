@@ -66,10 +66,17 @@ def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
     log.addHandler(OpentracingLogsenseHandler())
     log.setLevel(logging.DEBUG)
 
+    level = os.getenv('LOGSENSE_LOG_LEVEL', 'INFO').upper()
+
+    if level in ('CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'):
+        level = getattr(logging, level)
+    else:
+        level = logging.INFO
+
     # Do not propagate logsense.opentracing logger
     logsense_log = logging.getLogger('logsense.opentracing')
     logsense_log.propagate = False
-    logsense_log.setLevel(logging.DEBUG)
+    logsense_log.setLevel(level)
     logsense_log_handler = logging.StreamHandler()
     logsense_log_formatter = logging.Formatter('%(asctime)s [%(levelname)-8s]: [lgsns-ot] %(message)s')
     logsense_log_formatter.converter = time.gmtime

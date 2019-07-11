@@ -727,6 +727,9 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
         if inspect.ismodule(current):
             new_path = current.__name__
         elif inspect.isfunction(current):
+            # Skip dunderscore functions
+            if current.__name__.startswith('__'):
+                continue
             # For method use mod's __module__, __name__ and attribute's __name__
             if inspect.isclass(mod):
                 new_path = '{}.{}.{}'.format(mod.__module__, mod.__name__, current.__name__)

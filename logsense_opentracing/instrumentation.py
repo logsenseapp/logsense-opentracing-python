@@ -679,10 +679,9 @@ def tornado_route(scope, *args, **kwargs):
     return args, kwargs
 
 
-def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
+def patch_module(module, recursive=True, include_paths=None, exclude_paths=None):
     """
     Experimental
-
 
     """
     log.warning('Patching module is an experimental feature')
@@ -694,14 +693,17 @@ def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
         return
 
     mod = importlib.import_module(paths[0])
-    for i in range(1, len(paths)):
-        mod = getattr(mod, paths[i])
-
+    try:
+        for i in range(1, len(paths)):
+            mod = getattr(mod, paths[i])
+    except Exception as exception:
+        log.warning('Exception during importing module %s', exception)
 
     # Iterate over all methods
     for function in dir(mod):
         # Skip f method is not an attribute
         if not hasattr(mod, function):
+            log.debug('%s is not module %s attribute', function, module)
             continue
 
         # Skip all dunderscore methods
@@ -710,41 +712,62 @@ def patch_module(module, recursive=True, include_paths=None, exclude_path=''):
 
         current = getattr(mod, function)
 
-        if not hasattr(current, '__module__'):
-            # Skip all root level modules
-            continue
-
         # Skip already patched modules
         if hasattr(current, '_logsense_patched'):
             continue
 
         try:
             setattr(current, '_logsense_patched', True)
-        except AttributeError:
+        except (AttributeError, TypeError):
             # Skip all methods for which cannot set patching flag
             continue
 
-        new_path = '{}.{}'.format('.'.join(paths), function)
-
-        if paths[0] != current.__module__.split('.')[0]:
-            # Use module path instead of current path
+        # Obtain import paths of given attribute. Method depends on type of attribute
+        # For method use __package__ and __name__
+        if inspect.ismodule(current):
+            new_path = '{}.{}'.format(current.__package__, current.__name__)
+        elif inspect.isfunction(current):
+            # For method use mod's __module__, __name__ and attribute's __name__
+            if inspect.isclass(mod):
+                new_path = '{}.{}.{}'.format(mod.__module__, mod.__name__, current.__name__)
+            # For function use __module__ and __name__
+            else:
+                new_path = '{}.{}'.format(current.__module__, current.__name__)
+        # For class use __module__ and __name__
+        elif inspect.isclass(current):
             new_path = '{}.{}'.format(current.__module__, current.__name__)
+        # Other types are unsupported
+        else:
+            log.warning('Cannot classify %s:%s. Skipping', module, function)
+            continue
 
+        # Skip all modules which aren't part of mod
+        if not new_path.startswith(module):
+            log.debug('%s is not in %s module. Skipping', new_path, module)
+            continue
+
+        log.debug('Trying to patch %s', new_path)
+
+        # Patch coroutines with coroutines
         if inspect.iscoroutinefunction(current):
-            log.info('Patching async function %s', new_path)
+            log.debug('Patching async function %s', new_path)
             loop = asyncio.get_event_loop()
             loop.run_until_complete(patch_async_single(new_path))
+        # Patch function witch function patcher
         elif inspect.isfunction(current):
-            log.info('Patching function %s', new_path)
+            log.debug('Patching function %s', new_path)
             patch_single(new_path)
+        # Patch modules recursively, if recursive is enabled
         elif inspect.ismodule(current):
+            if recursive is True:
+                log.debug('Patching module %s', new_path)
+                patch_module(new_path, recursive=recursive, include_paths=include_paths, exclude_paths=exclude_paths)
             # currently do nothing, Will back here with new ideas
             pass
+        # Treat classes as packages
         elif inspect.isclass(current):
-            for path in include_paths if include_paths is not None else []:
-                if current.__module__.startswith(path):
-                    log.info('Patching module %s', current)
-                    patch_module(new_path, recursive=True, include_paths=include_paths, exclude_path=exclude_path)
+            log.info('Patching class %s', current)
+            patch_module(new_path, recursive=recursive, include_paths=include_paths, exclude_paths=exclude_paths)
 
 
 def requests_baggage(scope, method, url, **kwargs):

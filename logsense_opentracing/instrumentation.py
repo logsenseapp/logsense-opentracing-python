@@ -723,9 +723,9 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
             continue
 
         # Obtain import paths of given attribute. Method depends on type of attribute
-        # For method use __package__ and __name__
+        # For module use __name__
         if inspect.ismodule(current):
-            new_path = '{}.{}'.format(current.__package__, current.__name__)
+            new_path = current.__name__
         elif inspect.isfunction(current):
             # For method use mod's __module__, __name__ and attribute's __name__
             if inspect.isclass(mod):

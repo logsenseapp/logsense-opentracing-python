@@ -3,11 +3,11 @@ import logging
 import opentracing
 
 from logsense_opentracing.tracer import Tracer
+from logsense_opentracing.utils import setup_tracer
 
 
-log = logging.getLogger()  # pylint: disable=invalid-name
-tracer = Tracer()  # pylint: disable=invalid-name
-opentracing.tracer = tracer
+# Initialize tracer
+setup_tracer(component='baggage')
 
 with opentracing.tracer.start_active_span('parent-span') as scope:
     scope.span.set_baggage_item('greeting', 'Aloha!')

@@ -7,6 +7,7 @@ from logsense_opentracing.instrumentation import patch_async_decorator
 
 # Define or import decorators (it should be done before patching)
 def flat_decorator(function):
+
     @functools.wraps(function)
     async def decorated_function(*args, **kwargs):
         logging.info('Before executing function as flat')
@@ -28,7 +29,7 @@ async def hello_flat_world():
 
 if __name__ == '__main__':
     # Initialize tracer
-    setup_tracer(logsense_token='Your very own logsense token')
+    setup_tracer(component='flat async decorator')
 
     # Run application
     get_event_loop().run_until_complete(hello_flat_world())

@@ -10,7 +10,7 @@ from logsense_opentracing.utils import setup_tracer
 from logsense_opentracing.instrumentation import patch_async_single
 
 # Initialize tracer
-setup_tracer()
+setup_tracer(component='async auto')
 
 loop = asyncio.get_event_loop()  # pylint: disable=invalid-name
 

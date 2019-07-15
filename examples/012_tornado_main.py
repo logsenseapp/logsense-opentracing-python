@@ -6,10 +6,10 @@ import logging
 import opentracing
 
 from logsense_opentracing.utils import setup_tracer
-from logsense_opentracing.instrumentation import patch_single, tornado_route, requests_baggage
+from logsense_opentracing.instrumentation import patch_single, tornado_route, requests_baggage, patch_module
 
 # Initialize tracer
-setup_tracer(component='First server')
+setup_tracer(component='Main server')
 
 class MainHandler(tornado.web.RequestHandler):
 
@@ -21,6 +21,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 patch_single('__main__.MainHandler.get', before=tornado_route)
 patch_single('requests.api.request', before=requests_baggage)
+patch_module('requests.models.PreparedRequest', recursive=True)
 
 def make_app():
     return tornado.web.Application([

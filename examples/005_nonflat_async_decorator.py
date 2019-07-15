@@ -11,7 +11,7 @@ def non_flat_decorator(first, second):
         @functools.wraps(function)
         async def decorated_function(*args, **kwargs):
             logging.info('First parameter is %s', first)
-            result = function(*args, **kwargs)
+            result = await function(*args, **kwargs)
             logging.info('Second parameter is %s', second)
             return result
 
@@ -24,13 +24,13 @@ patch_async_decorator('__main__.non_flat_decorator', flat=False)
 
 # Use decorators
 @non_flat_decorator(1, 17)
-def hello_sphere_world():
+async def hello_sphere_world():
     logging.info('Our world is sphere')
 
 
 if __name__ == '__main__':
     # Initialize tracer
-    setup_tracer(logsense_token='Your very own logsense token')
+    setup_tracer(component='non flat async decorator')
 
     # Run application
     get_event_loop().run_until_complete(hello_sphere_world())

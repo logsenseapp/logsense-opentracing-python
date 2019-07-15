@@ -134,7 +134,7 @@ class Tracer(opentracing.Tracer):
         mandatory_keys = {'trace_id', 'baggage', 'span_id'}
         keys_difference = mandatory_keys - set(carrier.keys())
         if keys_difference:
-            log.warning('Carrier incomplete. Lack of few keys: {keys}'.format(keys=keys_difference))
+            log.debug('Carrier incomplete. Lack of few keys: {keys}'.format(keys=keys_difference))
             return active_context
 
         active_context.trace_id = str(carrier['trace_id'])

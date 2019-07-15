@@ -9,7 +9,7 @@ from logsense_opentracing.tracer import Tracer
 
 
 # Initialize tracer
-setup_tracer()
+setup_tracer(component='sync')
 
 
 with opentracing.tracer.start_active_span('parent-span') as scope:

@@ -7,6 +7,7 @@ from tests import resources
 from unittest import TestCase
 
 import logging
+import importlib
 
 
 class TestFunctions(TestCase):
@@ -53,6 +54,21 @@ class TestFunctions(TestCase):
         self.assertEqual(data[0].get('ot.kwarg.foo'), 'a')
         self.assertEqual(data[0].get('ot.kwarg.bar'), 'b')
         self.assertEqual(data[1]['message'], 'This is a b')
+
+    def test_adding_attr(self):
+        import tests.resources
+
+        self.assertFalse(hasattr(tests.resources.regular_function, '_logsense_patched'))
+        regular_function = patch_single('tests.resources.regular_function')
+        self.assertTrue(hasattr(regular_function, '_logsense_patched'))
+
+    def test_double_instrumentation(self):
+        import tests.resources
+
+        self.assertFalse(hasattr(tests.resources.regular_function, '_logsense_patched'))
+        regular_function = patch_single('tests.resources.regular_function')
+        regular_function_2 = patch_single('tests.resources.regular_function')
+        self.assertEqual(regular_function, regular_function_2)
 
     def tearDown(self):
         opentracing.tracer.finish()

@@ -11,7 +11,7 @@ from logsense_opentracing.instrumentation import patch_async_single, patch_modul
 from logsense_opentracing.tracer import _DummySender
 
 # Initialize dummy tracer
-setup_tracer(sender=_DummySender())
+setup_tracer(component='patch_module')
 
 
 def finish():

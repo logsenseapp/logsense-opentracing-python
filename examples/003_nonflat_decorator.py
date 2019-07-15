@@ -16,8 +16,7 @@ def non_flat_decorator(first, second):
     return decorator
 
 # Decorator should be patched before using it.
-patch_single('__main__.non_flat_decorator')
-patch_decorator('__main__.non_flat_decorator')
+patch_decorator('__main__.non_flat_decorator', flat=False)
 
 
 # Use decorators
@@ -28,7 +27,7 @@ def hello_sphere_world():
 
 if __name__ == '__main__':
     # Initialize tracer
-    setup_tracer(logsense_token='Your very own logsense token')
+    setup_tracer(component='non flat decorator')
 
     # Run application
     hello_sphere_world()

@@ -1,6 +1,5 @@
 
 import logging
-import asyncio
 import inspect
 
 import opentracing
@@ -9,7 +8,7 @@ from .utils import get_obj_from_path
 from .utils import ALL_ARGS
 
 
-log = logging.getLogger('logsense.opentracing.instrumentation')
+log = logging.getLogger('logsense.opentracing.instrumentation')  # pylint: disable=invalid-name
 
 
 def instrumentation(inside_function, before=None, after=None, arguments=None):
@@ -64,7 +63,7 @@ def _instrumentation(inside_function, before=None, after=None, arguments=None):
             if before is not None:
                 try:
                     args, kwargs = before(scope, *args, **kwargs)
-                except Exception as exception:
+                except Exception as exception:  # pylint: disable=broad-except
                     log.warning(exception)
 
             # get list of and default arguments
@@ -96,7 +95,7 @@ def _instrumentation(inside_function, before=None, after=None, arguments=None):
                 args = args[1:]
 
             # Should be class method, remove first argument
-            if len(function_args) > 0 and function_args[0] == 'cls':
+            if function_args and function_args[0] == 'cls':
                 args = args[1:]
 
             try:

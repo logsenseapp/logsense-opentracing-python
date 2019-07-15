@@ -1,12 +1,10 @@
 import logging
-import inspect
-import asyncio
 
 from .utils import get_obj_from_path
 from .general import instrumentation, async_instrumentation
 
 
-log = logging.getLogger('logsense.opentracing.instrumentation')
+log = logging.getLogger('logsense.opentracing.instrumentation')  # pylint: disable=invalid-name
 
 
 def patch_single(module, arguments=None, before=None):

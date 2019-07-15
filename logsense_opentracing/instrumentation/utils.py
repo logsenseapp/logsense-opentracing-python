@@ -17,4 +17,3 @@ def get_obj_from_path(module):
         mod = getattr(mod, paths[i])
 
     return mod, paths[-1], getattr(mod, paths[-1])
-

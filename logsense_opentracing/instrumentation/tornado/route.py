@@ -1,5 +1,9 @@
+import logging
 import opentracing
 from ..utils import HTTP_TRACE_ID, HTTP_SPAN_ID, HTTP_BAGGAGE_PREFIX
+
+
+log = logging.getLogger('logsense.opentracing')  # pylint: disable=invalid-name
 
 
 def tornado_route(scope, *args, **kwargs):
@@ -30,7 +34,7 @@ def tornado_route(scope, *args, **kwargs):
 
     try:
         opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
-    except Exception as exception:
+    except Exception as exception:  # pylint: disable=broad-except
         log.warning(exception)
 
     # Extract request information
@@ -39,4 +43,3 @@ def tornado_route(scope, *args, **kwargs):
     scope.span.set_tag('peer.ipv4', handler.request.remote_ip)
 
     return args, kwargs
-

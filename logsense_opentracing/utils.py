@@ -34,8 +34,8 @@ Description of `opentracing.tracer.start_active_span` is available in further re
 """
 import os
 import logging
-import opentracing
 import time
+import opentracing
 
 from logsense.sender import LogSenseSender
 from logsense_opentracing.tracer import Tracer

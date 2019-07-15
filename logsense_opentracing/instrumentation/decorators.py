@@ -1,16 +1,11 @@
 import logging
-import importlib
-import inspect
-import asyncio
 import functools
-import opentracing
 
-from .functions import patch_single, patch_async_single
 from .utils import get_obj_from_path
 from .general import instrumentation, async_instrumentation
 
 
-log = logging.getLogger('logsense.opentracing.instrumentation')
+log = logging.getLogger('logsense.opentracing.instrumentation')  # pylint: disable=invalid-name
 
 
 def _build_decorator(decorator, only_decorated, **kwargs):
@@ -20,11 +15,11 @@ def _build_decorator(decorator, only_decorated, **kwargs):
                 decorated_function,
                 **kwargs
                 ))
-        else:
-            return instrumentation(
-                decorator(decorated_function),
-                **kwargs
-                )
+
+        return instrumentation(
+            decorator(decorated_function),
+            **kwargs
+            )
 
     return new_decorator
 
@@ -39,11 +34,11 @@ def _build_async_decorator(decorator, only_decorated, **kwargs):
                     decorated_function,
                     **kwargs
                     ))(*argz, **kwargz)
-            else:
-                return await (await async_instrumentation(
-                    decorator(decorated_function),
-                    **kwargs
-                    ))(*argz, **kwargz)
+
+            return await (await async_instrumentation(
+                decorator(decorated_function),
+                **kwargs
+                ))(*argz, **kwargz)
 
         return new_decorator
 
@@ -71,10 +66,10 @@ def _decorator_instrumentation(decorator, before=None, arguments=None, flat=Fals
 
     """
     flat_decorator = _build_decorator(
-            decorator=decorator,
-            only_decorated=only_decorated,
-            before=before,
-            arguments=arguments
+        decorator=decorator,
+        only_decorated=only_decorated,
+        before=before,
+        arguments=arguments
         )
 
     def non_flat_decorator(*args, **kwargs):
@@ -87,8 +82,8 @@ def _decorator_instrumentation(decorator, before=None, arguments=None, flat=Fals
 
     if flat is True:
         return flat_decorator
-    else:
-        return non_flat_decorator
+
+    return non_flat_decorator
 
 
 def _async_decorator_instrumentation(decorator, before=None, arguments=None, flat=False, only_decorated=False):
@@ -116,8 +111,8 @@ def _async_decorator_instrumentation(decorator, before=None, arguments=None, fla
 
     if flat is True:
         return flat_decorator
-    else:
-        return non_flat_decorator
+
+    return non_flat_decorator
 
 def patch_decorator(module, arguments=None, before=None, flat=False, only_decorated=False):
     """
@@ -321,4 +316,3 @@ def patch_async_decorator(module, arguments=None, before=None, flat=False, only_
         flat=flat,
         only_decorated=only_decorated
         ))
-

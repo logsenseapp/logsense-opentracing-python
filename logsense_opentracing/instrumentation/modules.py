@@ -6,7 +6,7 @@ import asyncio
 from .functions import patch_single, patch_async_single
 
 
-log = logging.getLogger('logsense.opentracing.instrumentation')
+log = logging.getLogger('logsense.opentracing.instrumentation')  # pylint: disable=invalid-name
 
 
 def patch_module(module, recursive=True, include_paths=None, exclude_paths=None):
@@ -26,7 +26,7 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
     try:
         for i in range(1, len(paths)):
             mod = getattr(mod, paths[i])
-    except Exception as exception:
+    except Exception as exception:  # pylint: disable=broad-except
         log.warning('Exception during importing module %s', exception)
 
     # Iterate over all methods
@@ -89,8 +89,6 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
             if recursive is True:
                 log.debug('Patching module %s', new_path)
                 patch_module(new_path, recursive=recursive, include_paths=include_paths, exclude_paths=exclude_paths)
-            # currently do nothing, Will back here with new ideas
-            pass
         # Treat classes as packages
         elif inspect.isclass(current):
             log.info('Patching class %s', current)

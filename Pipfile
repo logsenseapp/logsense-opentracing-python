@@ -7,6 +7,8 @@ verify_ssl = true
 pylint = "*"
 sphinx-rtd-theme = "*"
 tornado = "*"
+nose = "*"
+coverage = "*"
 
 [packages]
 opentracing = "==2.0.0"

@@ -1,5 +1,10 @@
+import logging
 import opentracing
+
 from ..utils import HTTP_TRACE_ID, HTTP_SPAN_ID, HTTP_BAGGAGE_PREFIX
+
+
+log = logging.getLogger('logsense.opentracing')  # pylint: disable=invalid-name
 
 
 def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
@@ -64,7 +69,7 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
 
     try:
         opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
-    except Exception as exception:
+    except Exception as exception:  # pylint: disable=broad-except
         log.warning(exception)
 
     # Extract request information

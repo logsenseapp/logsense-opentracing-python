@@ -1,6 +1,6 @@
 import logging
 from logsense_opentracing.utils import setup_tracer, wait_on_tracer
-from logsense_opentracing.instrumentation import patch_decorator, patch_single
+from logsense_opentracing.instrumentation import patch_decorator
 
 
 # Define or import decorators (it should be done before patching)

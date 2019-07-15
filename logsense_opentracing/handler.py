@@ -7,7 +7,7 @@ import logging
 import opentracing
 
 
-log = logging.getLogger('logsense.opentracing')
+log = logging.getLogger('logsense.opentracing')  # pylint: disable=invalid-name
 
 
 class OpentracingLogsenseHandler(logging.Handler):

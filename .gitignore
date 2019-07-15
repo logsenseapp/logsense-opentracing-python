@@ -3,3 +3,4 @@ build/
 dist/
 logsense_opentracing_tracker.egg-info/
 .vscode
+.coverage

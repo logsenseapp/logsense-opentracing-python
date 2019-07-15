@@ -20,17 +20,17 @@ from .span_context import SpanContext
 from .scope_manager import ScopeManager
 
 
-log = logging.getLogger('logsense.opentracing.tracer')
+log = logging.getLogger('logsense.opentracing.tracer')  # pylint: disable=invalid-name
 
 
 class _DummySender:
     def __init__(*args, **kwargs):  # pylint: disable=no-method-argument
         pass
 
-    def close(*args, **kwargs):  # pylint: disable=no-method-argument
+    def close(*args, **kwargs):  # pylint: disable=no-method-argument,missing-docstring
         pass
 
-    def emit_with_time(self, label, timestamp, data):
+    def emit_with_time(self, label, timestamp, data):  # pylint: disable=missing-docstring,no-self-use
         print('{} {} {}'.format(timestamp, label, json.dumps(data, indent=4)))
 
 
@@ -55,7 +55,7 @@ class Tracer(opentracing.Tracer):
         self._thread.start()
         self._component = component
 
-    def start_active_span(self,  # pylint: disable=too-many-arguments
+    def start_active_span(self,  # pylint: disable=too-many-arguments,arguments-differ
                           operation_name,
                           child_of=None,
                           references=None,
@@ -134,19 +134,22 @@ class Tracer(opentracing.Tracer):
         mandatory_keys = {'trace_id', 'baggage', 'span_id'}
         keys_difference = mandatory_keys - set(carrier.keys())
         if keys_difference:
-            log.debug('Carrier incomplete. Lack of few keys: {keys}'.format(keys=keys_difference))
+            log.debug('Carrier incomplete. Lack of few keys: %s', keys_difference)
             return active_context
 
         active_context.trace_id = str(carrier['trace_id'])
 
         # Create fake scope just to be parent scope
         # ToDO: Improve parent managing. Aim is to avoid this hack
-        active_context._parent = Scope(self._scope_manager, span=Span(tracer=self,
-            context=SpanContext(
-                span_id=str(carrier['span_id']),
-                trace_id=active_context.trace_id,
-                baggage=carrier['baggage'] or None
-        )))
+        active_context._parent = Scope(
+            self._scope_manager,
+            span=Span(
+                tracer=self,
+                context=SpanContext(
+                    span_id=str(carrier['span_id']),
+                    trace_id=active_context.trace_id,
+                    baggage=carrier['baggage'] or None
+                    )))
 
         for key, value in carrier['baggage'].items():
             active_context.set_baggage(key, value)

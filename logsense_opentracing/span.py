@@ -76,7 +76,8 @@ class Span(opentracing.Span):
 
         self.tracer.put_to_queue(self)
 
-    def _prefix_keys(self, data):
+    @staticmethod
+    def _prefix_keys(data):
         return {'ot.{}'.format(key): value for key, value in data.items()}
 
     def get_data(self) -> dict:

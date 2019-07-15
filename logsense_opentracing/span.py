@@ -4,7 +4,7 @@ Opentracing's Span implementation.
 `Opentracing documentation <https://opentracing-python.readthedocs.io/en/latest/api.html#opentracing.Span>`_
 
 To use logsense opentracing implementation you should use at least one span.
-There is not any automagic created main span
+There is no main span, so you have to create it manually
 
 To create your span, you can use this snippet::
 
@@ -54,12 +54,18 @@ class Span(opentracing.Span):
     def set_tag(self, key, value):
         """
         Set tag to given value
+
+        :arg key: Tag name
+        :arg value: Tag value
         """
         self._tags[key] = value
 
     def log_kv(self, key_values, timestamp=None):
         """
         Send structured logs from this span via logger
+
+        :arg key_values: dictionary, which is treated as structured log
+        :arg timestamp: time which is used to stamp log (None means current timestamp)
         """
         timestamp = time.time() if timestamp is None else timestamp
         self._logs.append({
@@ -70,6 +76,8 @@ class Span(opentracing.Span):
     def finish(self, finish_time=None):
         """
         Called at the end of span
+
+        :arg finish_time: Time which should be used as end of span (parameter is override as current timestamp)
         """
         self._end_timestamp = time.time()
         self._duration = self._end_timestamp - self._start_timestamp
@@ -78,11 +86,18 @@ class Span(opentracing.Span):
 
     @staticmethod
     def _prefix_keys(data):
+        """
+        Prefixes all keys in data with ot
+
+        :arg data: dictionary which keys should be rewritten
+        """
         return {'ot.{}'.format(key): value for key, value in data.items()}
 
     def get_data(self) -> dict:
         """
         Data which should be send to the logsense client
+
+        Data is already prefixed and structured as ready to send dictionary
         """
         return_value = []
 
@@ -110,6 +125,9 @@ class Span(opentracing.Span):
     def set_baggage_item(self, key, value):
         """
         Set baggage item. Useful for inter-application tracing
+
+        :arg key: baggage item name
+        :arg value: baggage item value
         """
         self.context.set_baggage(key, value)
         return self
@@ -117,5 +135,7 @@ class Span(opentracing.Span):
     def get_baggage_item(self, key):
         """
         Get baggage item value
+
+        :arg key: baggage item name
         """
         return self.context.baggage.get(key)

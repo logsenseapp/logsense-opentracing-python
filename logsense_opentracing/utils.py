@@ -54,7 +54,8 @@ def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
         from logsense_opentracing.utils import setup_tracer
         setup_tracer(logsense_token='Your very own logsense token')
 
-    :arg logsense_token: your own personal token in UUID format.
+    :arg logsense_token: your own personal token in UUID format. It's override by `LOGSENSE_LOG_LEVEL` environmental
+        variable if it exists
     :arg logger: logger name. All logs logged by this logger will be pushed to the logsense platform.
     :arg sender: You can use your own sender
 
@@ -94,7 +95,8 @@ def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
 def wait_on_tracer():
     """
     Since this project communicates with logsense on the other thread.
-    `wait_on_tracer` should be called to ensure that everything was sent correctly. which should be se
+    `wait_on_tracer` should be called to ensure that everything was sent correctly.
+    This function should be called always before closing application
 
     Return:
         * None

@@ -1,13 +1,20 @@
-logsense\_opentracing package
-=============================
+Logsense Opentracing
+====================
+
+Subpackages
+-----------
+
+.. toctree::
+
+   logsense_opentracing.instrumentation
 
 Submodules
 ----------
 
 .. toctree::
 
+   logsense_opentracing.constants
    logsense_opentracing.handler
-   logsense_opentracing.instrumentation
    logsense_opentracing.scope
    logsense_opentracing.scope_manager
    logsense_opentracing.span
@@ -20,6 +27,6 @@ Module contents
 ---------------
 
 .. automodule:: logsense_opentracing
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

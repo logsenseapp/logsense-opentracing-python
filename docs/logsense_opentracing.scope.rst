@@ -1,7 +1,7 @@
-logsense\_opentracing.scope module
-==================================
+Scope
+=====
 
 .. automodule:: logsense_opentracing.scope
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

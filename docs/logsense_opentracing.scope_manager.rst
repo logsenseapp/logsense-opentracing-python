@@ -1,7 +1,7 @@
-logsense\_opentracing.scope\_manager module
-===========================================
+Scope Manager
+=============
 
 .. automodule:: logsense_opentracing.scope_manager
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

@@ -1,7 +1,7 @@
-logsense\_opentracing.tracer module
-===================================
+Tracer
+======
 
 .. automodule:: logsense_opentracing.tracer
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

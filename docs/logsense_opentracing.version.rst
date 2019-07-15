@@ -1,7 +1,7 @@
-logsense\_opentracing.version module
-====================================
+Version
+=======
 
 .. automodule:: logsense_opentracing.version
-    :members:
-    :undoc-members:
-    :show-inheritance:
+   :members:
+   :undoc-members:
+   :show-inheritance:

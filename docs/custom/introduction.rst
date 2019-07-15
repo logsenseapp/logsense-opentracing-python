@@ -11,7 +11,7 @@ way to use opentracing with `logsense.com <https://www.logsense.com/>`_.
 By automated way we understand self-developed automatic instrumentation.
 
 Project is still in developmnet phase, but current effects are highly promising
-and we kindly invites to take participation in it.
+and we kindly invites you to take participation in it.
 
 Both projects are developed by the same team, what ensures perfect matching and compatibility.
 

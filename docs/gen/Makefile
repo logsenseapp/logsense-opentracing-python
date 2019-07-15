@@ -14,7 +14,7 @@ help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 rst:
-	@$(SPHINX_RST) -f -e -o .. ../..
+	@$(SPHINX_RST) -f -e -o .. ../../logsense_opentracing
 
 .PHONY: help Makefile
 

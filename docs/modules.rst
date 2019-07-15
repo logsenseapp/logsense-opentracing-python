@@ -1,8 +1,7 @@
-logsense-tracer
-===============
+logsense_opentracing
+====================
 
 .. toctree::
    :maxdepth: 4
 
    logsense_opentracing
-   setup

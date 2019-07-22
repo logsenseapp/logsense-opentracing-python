@@ -1,3 +1,8 @@
+"""
+Experimental functionality!
+
+Module patching is experimental, because it can affect all module at once and should be used carefully
+"""
 import logging
 import importlib
 import inspect
@@ -11,11 +16,23 @@ log = logging.getLogger('logsense.opentracing.instrumentation')  # pylint: disab
 
 def patch_module(module, recursive=True, include_paths=None, exclude_paths=None):
     """
-    Experimental
+    Experimental (patch module)
+
+    :param module: Module path to be patched
+    :type module: ``str```
+    :param recursive: Patch module recursively if True, otherwise module's functions only
+    :type recursive: ``bool``
+    :param include_paths: Tuple of path regexes which should be patched. Matches all if tuple is empty
+    :type include_paths: ``bool``
+    :param exclude_paths: Tuple of path regexes which shouldn't be patched
+    :typ exclude_paths: ``bool``
 
     """
     log.warning('Patching module is an experimental feature')
     log.info('Patching module %s', module)
+
+    include_paths = () if include_paths is None else include_paths
+    exclude_paths = () if exclude_paths is None else exclude_paths
 
     # Import module and skip builtins
     paths = module.split('.')
@@ -74,6 +91,22 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
             continue
 
         log.debug('Trying to patch %s', new_path)
+
+        # Allow paths if there is no allowed paths
+        allow = not include_paths
+
+        for allowed in include_paths:
+            if new_path.startswith(allowed):
+                allow = True
+                break
+
+        for denied in exclude_paths:
+            if new_path.startswith(denied):
+                allow = False
+
+        if not allow:
+            log.info('Path %s is excluded from patching. Skipping', new_path)
+            continue
 
         # Patch coroutines with coroutines
         if inspect.iscoroutinefunction(current):

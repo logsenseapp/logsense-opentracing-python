@@ -1,41 +1,56 @@
-import logging
-import opentracing
-from ..utils import HTTP_TRACE_ID, HTTP_SPAN_ID, HTTP_BAGGAGE_PREFIX
+"""
+Tornado instrumentation
 
-
-log = logging.getLogger('logsense.opentracing')  # pylint: disable=invalid-name
+"""
+from ..utils import extract_http_carrier
 
 
 def tornado_route(scope, *args, **kwargs):
+    """
+    ::
+
+        \"\"\"
+        Tornado handler example
+        \"\"\"
+        import logging
+        import tornado.ioloop
+        import tornado.web
+
+        from logsense_opentracing.utils import setup_tracer
+        from logsense_opentracing.instrumentation import patch_single, tornado_route
+
+
+        # Initialize tracer
+        setup_tracer(component='tornado server')
+
+
+        class MainHandler(tornado.web.RequestHandler):  # pylint: disable=missing-docstring, abstract-method
+
+            def get(self):
+                \"\"\"
+                Just log and send welcome message
+                \"\"\"
+                logging.info('Hello, world')
+                self.write('Hello, world')
+
+
+        # Patch handler
+        patch_single('__main__.MainHandler.get', before=tornado_route)
+
+
+        if __name__ == "__main__":
+            app = tornado.web.Application([  # pylint: disable=invalid-name
+                (r"/", MainHandler),
+            ])
+            app.listen(8889)
+            tornado.ioloop.IOLoop.current().start()
+
+    :param scope: Opentracing's scope
+    :type scope: ``opentracing.Scope``
+    """
     handler = args[0]
 
-    # Extract trace if available
-    carrier = {
-        'baggage': {}
-    }
-
-    if handler.request.headers.get(HTTP_TRACE_ID):
-        try:
-            carrier['trace_id'] = int(handler.request.headers[HTTP_TRACE_ID], 16)
-        except ValueError:
-            log.warning('Incorrect header value: %s', handler.request.headers[HTTP_TRACE_ID])
-
-    if handler.request.headers.get(HTTP_SPAN_ID):
-        try:
-            carrier['span_id'] = int(handler.request.headers[HTTP_SPAN_ID], 16)
-        except ValueError:
-            log.warning('Incorrect header value: %s', handler.request.headers[HTTP_SPAN_ID])
-
-    prefix_len = len(HTTP_BAGGAGE_PREFIX)
-
-    for name, value in handler.request.headers.items():
-        if name.startswith(HTTP_BAGGAGE_PREFIX) and name != HTTP_BAGGAGE_PREFIX:
-            carrier[name[prefix_len:]] = value
-
-    try:
-        opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
-    except Exception as exception:  # pylint: disable=broad-except
-        log.warning(exception)
+    extract_http_carrier(handler.request.headers)
 
     # Extract request information
     scope.span.set_tag('http.url', handler.request.full_url())

@@ -1,10 +1,7 @@
-import logging
-import opentracing
-
-from ..utils import HTTP_TRACE_ID, HTTP_SPAN_ID, HTTP_BAGGAGE_PREFIX
-
-
-log = logging.getLogger('logsense.opentracing')  # pylint: disable=invalid-name
+"""
+`Flask <https://palletsprojects.com/p/flask/>`_ integration
+"""
+from ..utils import extract_http_carrier
 
 
 def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
@@ -14,11 +11,8 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
     ::
 
         import logging
-        import asyncio
         from flask import Flask
-        import opentracing
 
-        from logsense_opentracing.tracer import Tracer
         from logsense_opentracing.instrumentation import patch_decorator, flask_route
         from logsense_opentracing.utils import setup_tracer
 
@@ -26,15 +20,17 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
         app = Flask('hello-flask')
 
         # Initialize tracer
-        setup_tracer(logsense_token='your own personal token')
+        setup_tracer(component='flask')
 
         # Decorator should be patched before using it.
-        patch_decorator('flask.Flask.route', before=flask_route, flat=False, alternative=True)
+        patch_decorator('flask.Flask.route', before=flask_route, flat=False, only_decorated=True)
 
         # Define routing
         @app.route("/sayHello/<name>")
         def say_hello(name):
-            import logging
+            \"\"\"
+            Log client's name which entered our application and send message to it
+            \"\"\"
             logging.info('User %s entered', name)
             return 'Hello {}'.format(name)
 
@@ -42,35 +38,13 @@ def flask_route(scope, *args, **kwargs):  # pylint: disable=unused-argument
         # Run application
         if __name__ == "__main__":
             app.run(port=8080)
+
+    :param scope: Opentracing's scope
+    :type scope: ``opentracing.Scope``
     """
-    from flask import request  # Optional import
+    from flask import request  # Optional import, not everyone is going to install flask module
 
-    # Extract trace if available
-    carrier = {
-        'baggage': {}
-    }
-    if request.headers.get(HTTP_TRACE_ID):
-        try:
-            carrier['trace_id'] = int(request.headers[HTTP_TRACE_ID], 16)
-        except ValueError:
-            log.warning('Incorrect header value: %s', request.headers[HTTP_TRACE_ID])
-
-    if request.headers.get(HTTP_SPAN_ID):
-        try:
-            carrier['span_id'] = int(request.headers[HTTP_SPAN_ID], 16)
-        except ValueError:
-            log.warning('Incorrect header value: %s', request.headers[HTTP_SPAN_ID])
-
-    prefix_len = len(HTTP_BAGGAGE_PREFIX)
-
-    for name, value in request.headers.items():
-        if name.startswith(HTTP_BAGGAGE_PREFIX) and name != HTTP_BAGGAGE_PREFIX:
-            carrier[name[prefix_len:]] = value
-
-    try:
-        opentracing.tracer.extract(opentracing.propagation.Format.TEXT_MAP, carrier)
-    except Exception as exception:  # pylint: disable=broad-except
-        log.warning(exception)
+    extract_http_carrier(request.headers)
 
     # Extract request information
     scope.span.set_tag('http.url', request.url)

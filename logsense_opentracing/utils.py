@@ -1,6 +1,6 @@
 """
-Logsense opentracer comes with some handle functions for minimize amount of work
-and understanding of opentracing complexity
+Logsense opentracer comes with some handy functions for minimize amount of work
+and understanding of opentracing.
 
 Here is shortest example of using opentracing with logsense tracer::
 
@@ -30,7 +30,7 @@ Here is shortest example of using opentracing with logsense tracer::
 
 Description of `opentracing.tracer.start_active_span` is available in further reading.
 
-`setup_tracer` and `wait_on_tracer` are just below
+`setup_tracer` and `wait_on_tracer` are described on this page
 """
 import os
 import logging
@@ -54,14 +54,23 @@ def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
         from logsense_opentracing.utils import setup_tracer
         setup_tracer(logsense_token='Your very own logsense token')
 
-    :arg logsense_token: your own personal token in UUID format. It's override by `LOGSENSE_LOG_LEVEL` environmental
-        variable if it exists
-    :arg logger: logger name. All logs logged by this logger will be pushed to the logsense platform.
-    :arg sender: You can use your own sender
+    You could use your own sender and send logs wherever you want, but we would be very unhappy if you do it :(
 
-    Return:
-        * `opentracing.Tracer` - tracer instantion. It's already saved as `opentracing.tracer`,
-          so no need to use it directly
+    :param logsense_token: Your own personal token in UUID format. It's override by `LOGSENSE_TOKEN` environmental
+        variable if it exists. To get your token go to `logsense.com <https://www.logsense.com/>`_.
+    :param logger: Logger name. All logs logged by this logger are going to be pushed to the logsense platform via
+        sender
+    :param sender: You can use your own sender, but as it was mentioned before, it makes us a saaad pandaaa
+    :param component: Component name. In other words, it's your application name. It's used to track source of logs
+
+    Envs:
+        * LOGSENSE_TOKEN - overrides `logsense_token`
+        * LOGSENSE_LOG_LEVEL - logging level of logsense internal logs.
+          It can take `critical`, `error`, `warning`, `info`, `debug` as value
+
+    :returns: `opentracing.Tracer` - tracer instantion. It's already saved as `opentracing.tracer`,
+        so no need to use it directly
+
     """
     log = logging.getLogger(logger)  # pylint: disable=invalid-name
     log.addHandler(OpentracingLogsenseHandler())
@@ -94,11 +103,9 @@ def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
 
 def wait_on_tracer():
     """
-    Since this project communicates with logsense on the other thread.
+    Since this project communicates with logsense on the other thread,
     `wait_on_tracer` should be called to ensure that everything was sent correctly.
     This function should be called always before closing application
 
-    Return:
-        * None
     """
     opentracing.tracer.finish()

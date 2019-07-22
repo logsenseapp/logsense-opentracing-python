@@ -1,33 +1,35 @@
+"""
+Tornado handler example
+"""
+import logging
 import tornado.ioloop
 import tornado.web
-import requests
-import logging
-
-import opentracing
 
 from logsense_opentracing.utils import setup_tracer
 from logsense_opentracing.instrumentation import patch_single, tornado_route
 
 
 # Initialize tracer
-setup_tracer(component='Second server')
+setup_tracer(component='tornado server')
 
 
-class MainHandler(tornado.web.RequestHandler):
+class MainHandler(tornado.web.RequestHandler):  # pylint: disable=missing-docstring, abstract-method
 
     def get(self):
-        logging.info('Inside second server')
-        self.write("Hello, world")
+        """
+        Just log and send welcome message
+        """
+        logging.info('Hello, world')
+        self.write('Hello, world')
 
 
+# Patch handler
 patch_single('__main__.MainHandler.get', before=tornado_route)
 
-def make_app():
-    return tornado.web.Application([
-        (r"/", MainHandler),
-    ])
 
 if __name__ == "__main__":
-    app = make_app()
+    app = tornado.web.Application([  # pylint: disable=invalid-name
+        (r"/", MainHandler),
+    ])
     app.listen(8889)
     tornado.ioloop.IOLoop.current().start()

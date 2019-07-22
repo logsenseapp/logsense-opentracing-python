@@ -1,15 +1,14 @@
+import logging
+import requests
 import tornado.ioloop
 import tornado.web
-import requests
-import logging
-
-import opentracing
 
 from logsense_opentracing.utils import setup_tracer
 from logsense_opentracing.instrumentation import patch_single, tornado_route, requests_baggage, patch_module
 
 # Initialize tracer
 setup_tracer(component='Main server')
+
 
 class MainHandler(tornado.web.RequestHandler):
 

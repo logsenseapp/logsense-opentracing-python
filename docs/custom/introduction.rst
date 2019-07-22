@@ -6,7 +6,7 @@ Introduction
    :maxdepth: 3
    :titlesonly:
 
-Logsense Opentracing Tracker is project which deliver fully manual and automated
+Logsense Opentracing Tracker is a project which delivers fully manual and automated
 way to use opentracing with `logsense.com <https://www.logsense.com/>`_.
 By automated way we understand self-developed automatic instrumentation.
 

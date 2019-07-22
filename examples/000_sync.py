@@ -1,11 +1,9 @@
 # pylint: disable=missing-docstring
-import logging
 import random
 import time
 import opentracing
 
 from logsense_opentracing.utils import setup_tracer
-from logsense_opentracing.tracer import Tracer
 
 
 # Initialize tracer

@@ -1,9 +1,9 @@
+"""
+Extract information from flask request and put into opentracing scope
+"""
 import logging
-import asyncio
 from flask import Flask
-import opentracing
 
-from logsense_opentracing.tracer import Tracer
 from logsense_opentracing.instrumentation import patch_decorator, flask_route
 from logsense_opentracing.utils import setup_tracer
 
@@ -14,12 +14,14 @@ app = Flask('hello-flask')
 setup_tracer(component='flask')
 
 # Decorator should be patched before using it.
-patch_decorator('flask.Flask.route', before=flask_route, flat=False, alternative=True)
+patch_decorator('flask.Flask.route', before=flask_route, flat=False, only_decorated=True)
 
 # Define routing
 @app.route("/sayHello/<name>")
 def say_hello(name):
-    import logging
+    """
+    Log client's name which entered our application and send message to it
+    """
     logging.info('User %s entered', name)
     return 'Hello {}'.format(name)
 

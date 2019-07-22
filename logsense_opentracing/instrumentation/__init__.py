@@ -1,3 +1,6 @@
+"""
+`Instrumentation` takes together everything needed to automatic and manual instrumentation of python application
+"""
 from .general import instrumentation, remove_instrumentation, async_instrumentation
 from .utils import ALL_ARGS
 from .modules import patch_module

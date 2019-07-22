@@ -172,6 +172,6 @@ class Tracer(opentracing.Tracer):
         carrier['span_id'] = str(span_context.span_id)
 
         for key, value in span_context.baggage.items():
-            carrier[key] = value
+            carrier['baggage'][key] = value
 
         return span_context

@@ -18,7 +18,7 @@ class TestRegularClass(TestCase):
         self.backup_class_method = resources.RegularClass.class_method
 
     def test_regular_method(self):
-        patch_single('tests.resources.RegularClass.regular_method', ALL_ARGS)
+        patch_single('tests.resources.RegularClass.regular_method', arguments=ALL_ARGS)
 
         obj = resources.RegularClass()
         obj.regular_method('a', 'b')
@@ -34,7 +34,7 @@ class TestRegularClass(TestCase):
         self.assertEqual(data[1]['message'], 'Here is a and b')
 
     def test_static_method(self):
-        patch_single('tests.resources.RegularClass.static_method', ALL_ARGS)
+        patch_single('tests.resources.RegularClass.static_method', arguments=ALL_ARGS)
 
         obj = resources.RegularClass()
         obj.static_method('a', 'b')
@@ -50,7 +50,7 @@ class TestRegularClass(TestCase):
         self.assertEqual(data[1]['message'], 'Here is a and b')
 
     def test_class_method(self):
-        patch_single('tests.resources.RegularClass.class_method', ALL_ARGS)
+        patch_single('tests.resources.RegularClass.class_method', arguments=ALL_ARGS)
 
         obj = resources.RegularClass()
         obj.class_method('a', 'b')

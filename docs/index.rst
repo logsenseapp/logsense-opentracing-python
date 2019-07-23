@@ -7,8 +7,8 @@ Logsense Opentracing Tracer documentation
    :titlesonly:
 
    custom/introduction
-   custom/manual_instrumentation/index.rst
-   custom/automated_instrumentation/index.rst
+   custom/opentracing/index.rst
+   custom/instrumentation/index.rst
 
 * :ref:`genindex`
 * :ref:`modindex`

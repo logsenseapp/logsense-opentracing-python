@@ -1,0 +1,16 @@
+#!/usr/bin/env python3
+
+import sys
+import os
+import runpy
+import opentracing
+from logsense_opentracing.instrumentation.utils import install_bootstrap
+
+if len(sys.argv) < 2:
+    print("Please select some script")
+    sys.exit(-1)
+
+install_bootstrap()
+
+os.execl(sys.executable, sys.executable, sys.argv[1], *sys.argv[2:])
+opentracing.tracer.finish()

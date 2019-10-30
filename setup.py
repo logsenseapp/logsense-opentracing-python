@@ -25,6 +25,7 @@ setup(
     url='https://github.com/logsenseapp/logsense-opentracing-python',
     license=LICENSE,
     packages=find_packages(exclude=('examples', 'tests')),
+    scripts=('bin/logsense-tracer',),
     install_requires=[
         'opentracing==2.0.0',
         'logsense-logger==0.2.0'

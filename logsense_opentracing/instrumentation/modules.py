@@ -7,6 +7,7 @@ import logging
 import importlib
 import inspect
 import asyncio
+import os
 
 from .functions import patch_single, patch_async_single
 
@@ -33,6 +34,7 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
 
     include_paths = () if include_paths is None else include_paths
     exclude_paths = () if exclude_paths is None else exclude_paths
+    exclude_paths = ('logsense_opentracing', *exclude_paths)
 
     # Import module and skip builtins
     paths = module.split('.')
@@ -42,13 +44,20 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
     mod = importlib.import_module(paths[0])
     try:
         for i in range(1, len(paths)):
+
+            # Import submodule if it doesn't exist
+            if not hasattr(mod, paths[i]):
+                if hasattr(mod, '__module__'):
+                    importlib.import_module('.'.join([mod.__module__, mod.__name__, paths[i]]))
+                else:
+                    importlib.import_module('.'.join([mod.__name__, paths[i]]))
             mod = getattr(mod, paths[i])
     except Exception as exception:  # pylint: disable=broad-except
         log.warning('Exception during importing module %s', exception)
 
     # Iterate over all methods
     for function in dir(mod):
-        # Skip f method is not an attribute
+        # Skip if method is not an attribute
         if not hasattr(mod, function):
             log.debug('%s is not module %s attribute', function, module)
             continue
@@ -87,8 +96,12 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
 
         # Skip all modules which aren't part of mod
         if not new_path.startswith(module):
-            log.debug('%s is not in %s module. Skipping', new_path, module)
-            continue
+
+            # If path doesn't start with module name but file exists in cwd, patch it anyway
+            name = new_path.split('.')[0]
+            if not os.path.exists(name):
+                log.debug('%s is not in %s module. Skipping', new_path, module)
+                continue
 
         log.debug('Trying to patch %s', new_path)
 
@@ -103,6 +116,7 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
         for denied in exclude_paths:
             if new_path.startswith(denied):
                 allow = False
+                break
 
         if not allow:
             log.info('Path %s is excluded from patching. Skipping', new_path)

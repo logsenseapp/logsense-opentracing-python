@@ -15,7 +15,7 @@ from .functions import patch_single, patch_async_single
 log = logging.getLogger('logsense.opentracing.instrumentation')  # pylint: disable=invalid-name
 
 
-def patch_module(module, recursive=True, include_paths=None, exclude_paths=None):
+def patch_module(module, recursive=True, include_paths=None, exclude_paths=None, first=False):
     """
     Experimental (patch module)
 
@@ -29,7 +29,7 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
     :typ exclude_paths: ``bool``
 
     """
-    log.warning('Patching module is an experimental feature')
+    log.warning('Patching module is an experimental feature. Recursion enabled: %s', recursive)
     log.info('Patching module %s', module)
 
     include_paths = () if include_paths is None else include_paths
@@ -82,13 +82,26 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
                 continue
             # For method use mod's __module__, __name__ and attribute's __name__
             if inspect.isclass(mod):
-                new_path = '{}.{}.{}'.format(mod.__module__, mod.__name__, current.__name__)
+                new_path = '{}.{}.{}'.format(current.__module__ if first is True else module, mod.__name__, current.__name__)
+
+                if current.__module__ != module and recursive is True:
+                    log.debug('Patching module %s', current.__module__)
+                    patch_module(current.__module__, recursive=recursive, include_paths=include_paths, exclude_paths=exclude_paths)
             # For function use __module__ and __name__
             else:
-                new_path = '{}.{}'.format(current.__module__, current.__name__)
+                new_path = '{}.{}'.format(current.__module__ if first is True else module, current.__name__)
+
+                if current.__module__ != module and recursive is True:
+                    log.debug('Patching module %s', current.__module__)
+                    patch_module(current.__module__, recursive=recursive, include_paths=include_paths, exclude_paths=exclude_paths)
+
         # For class use __module__ and __name__
         elif inspect.isclass(current):
-            new_path = '{}.{}'.format(current.__module__, current.__name__)
+            new_path = '{}.{}'.format(current.__module__ if first is True else module, current.__name__)
+
+            if current.__module__ != module and recursive is True:
+                log.debug('Patching module %s', current.__module__)
+                patch_module(current.__module__, recursive=recursive, include_paths=include_paths, exclude_paths=exclude_paths)
         # Other types are unsupported
         else:
             log.warning('Cannot classify %s:%s. Skipping', module, function)
@@ -98,7 +111,7 @@ def patch_module(module, recursive=True, include_paths=None, exclude_paths=None)
         if not new_path.startswith(module):
 
             # If path doesn't start with module name but file exists in cwd, patch it anyway
-            name = new_path.split('.')[0]
+            name = new_path.split('.')[0] + '.py'
             if not os.path.exists(name):
                 log.debug('%s is not in %s module. Skipping', new_path, module)
                 continue

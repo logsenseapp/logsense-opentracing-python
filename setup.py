@@ -28,7 +28,9 @@ setup(
     scripts=('bin/logsense-tracer',),
     install_requires=[
         'opentracing==2.0.0',
-        'logsense-logger==0.2.0'
+        'logsense-logger==0.2.0',
+        'requests',
+        'msgpack'
         ],
     extras_require={
         'flask': [

@@ -11,6 +11,8 @@ import os
 import json
 import logging
 import threading
+import requests
+import msgpack
 from queue import Queue, Empty
 from threading import Lock, Thread
 import opentracing
@@ -33,6 +35,38 @@ class _DummySender:
 
     def emit_with_time(self, label, timestamp, data):  # pylint: disable=missing-docstring,no-self-use
         print('{} {} {}'.format(timestamp, label, json.dumps(data, indent=4)))
+
+
+class DataDogSender:
+    ADDRESS = 'http://localhost:8126/v0.4/traces'
+    def __init__(*args, **kwargs):  # pylint: disable=no-method-argument
+        pass
+
+    def close(*args, **kwargs):  # pylint: disable=no-method-argument,missing-docstring
+        pass
+
+    def emit_with_time(self, label, timestamp, data):  # pylint: disable=missing-docstring,no-self-use
+
+        if data.get('logger.name') is not None:
+            # Skip logs from traces
+            return
+
+        span = [[{
+            'trace_id': data['ot.trace_id'],
+            'span_id' : data['ot.span_id'],
+            'parent_id': data.get('ot.parent_span_id', None),
+            'start': int(timestamp * 1e9),
+            'duration': int(data['ot.duration_us'] * 1e3),
+            'service': data['ot.component'],
+            'name': data['ot.operation_name'],
+            'resource': data['ot.operation_name'],
+        }]]
+
+        resp = requests.put(self.ADDRESS, headers={
+            'Content-Type': 'application/msgpack'
+        }, data=msgpack.dumps(span))
+
+        log.info('Log sent to datadog agent with response: %s', resp.status_code)
 
 
 class Tracer(opentracing.Tracer):

@@ -15,7 +15,7 @@ def process():
     sys.path.append(os.getcwd())
 
     setup_tracer()
-    patch_module(app)
+    patch_module(app, first=True)
 
 
 if hasattr(sys, 'argv'):

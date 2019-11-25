@@ -39,6 +39,7 @@ import opentracing
 
 from logsense.sender import LogSenseSender
 from logsense_opentracing.tracer import Tracer
+from logsense_opentracing.tracer import _DummySender, DataDogSender
 from logsense_opentracing.handler import OpentracingLogsenseHandler
 
 def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
@@ -95,7 +96,14 @@ def setup_tracer(logsense_token=None, logger=None, sender=None, component=None):
 
     logsense_token = os.getenv('LOGSENSE_TOKEN', logsense_token)  # pylint: disable=unused-variable
 
-    sender = LogSenseSender(logsense_token) if sender is None else sender
+    if logsense_token is not None:
+        sender = LogSenseSender(logsense_token)
+    elif os.getenv('DD_ENABLED') is not None:
+        sender = DataDogSender()
+    else:
+        sender = _DummySender()
+
+    logsense_log.info('Using %s for sending logs', type(sender))
 
     tracer = Tracer(sender=sender, component=component)  # pylint: disable=invalid-name
     opentracing.tracer = tracer

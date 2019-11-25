@@ -10,6 +10,7 @@ import random
 import os
 import json
 import logging
+import threading
 from queue import Queue, Empty
 from threading import Lock, Thread
 import opentracing
@@ -101,13 +102,20 @@ class Tracer(opentracing.Tracer):
         """
         Process logs queue (should be run as separated thread)
         """
+        main_thread_exited = False
 
         while True:
+            if not main_thread_exited and not threading.main_thread().is_alive():
+                log.info("%s exited", threading.main_thread().name)
+                main_thread_exited = True
+                self.finish()
+
             try:
                 with self._lock:
                     span = self._queue.get(block=False)
                     if span is None:
                         self._sender.close()
+                        log.info("Processing has been finished")
                         return
 
                 for data in span.get_data():
@@ -117,7 +125,7 @@ class Tracer(opentracing.Tracer):
                         data=data['data']
                         )
             except Empty:
-                time.sleep(0.5)
+                time.sleep(0.1)
 
     def finish(self):
         """

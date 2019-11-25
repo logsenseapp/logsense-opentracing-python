@@ -1,6 +1,7 @@
 """
 Logsense opentracing utils. Helpers for manipulating modules paths
 """
+import os
 import logging
 import importlib
 import opentracing
@@ -71,3 +72,17 @@ def extract_http_carrier(headers):
         log.warning(exception)
 
     return carrier
+
+def install_bootstrap():
+    """
+    Use customization modules to run our code before any user code is executed
+
+    https://docs.python.org/3/tutorial/appendix.html#the-customization-modules
+    """
+    if os.getenv('PYTHONPATH'):
+        os.environ['PYTHONPATH'] = os.path.pathsep.join([
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bootstrap'),
+            os.getenv('PYTHONPATH')
+        ])
+    else:
+        os.environ['PYTHONPATH'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bootstrap')
